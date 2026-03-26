@@ -101,10 +101,61 @@
       </p>
 
     </div>
+
+    {# ── Install App Banner ── #}
+    <div id="installBanner" style="display:none;margin-top:16px;background:linear-gradient(135deg,#fff1f2,#fce7f3);border:1.5px solid var(--rose-border);border-radius:16px;padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#fb7185,#be123c);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+          🌸
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:700;color:var(--rose-deep);margin:0 0 2px;">Get the MamaCare App</p>
+          <p style="font-size:11px;color:var(--ink-3);margin:0;">Install for faster access & offline use</p>
+        </div>
+        <button id="installBtn"
+                style="flex-shrink:0;padding:8px 14px;background:linear-gradient(135deg,#f43f5e,#be123c);color:white;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+          Install
+        </button>
+      </div>
+    </div>
+
+    {# ── iOS instructions (shown only on Safari/iOS) ── #}
+    <div id="iosBanner" style="display:none;margin-top:16px;background:linear-gradient(135deg,#fff1f2,#fce7f3);border:1.5px solid var(--rose-border);border-radius:16px;padding:16px 18px;text-align:center;">
+      <p style="font-size:13px;font-weight:700;color:var(--rose-deep);margin:0 0 6px;">Add to Home Screen</p>
+      <p style="font-size:12px;color:var(--ink-3);margin:0;line-height:1.6;">
+        Tap <strong>Share</strong> <span style="font-size:15px;">⎙</span> then <strong>"Add to Home Screen"</strong> to install MamaCare
+      </p>
+    </div>
+
   </div>
 </div>
 
 <script>
+// PWA install prompt
+let _installPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  document.getElementById('installBanner').style.display = 'block';
+});
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if (!_installPrompt) return;
+  _installPrompt.prompt();
+  const { outcome } = await _installPrompt.userChoice;
+  if (outcome === 'accepted') {
+    document.getElementById('installBanner').style.display = 'none';
+  }
+});
+
+// iOS Safari detection
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.navigator.standalone;
+if (isIos && !isInStandaloneMode) {
+  document.getElementById('iosBanner').style.display = 'block';
+}
+
 function togglePw() {
   const input = document.getElementById('pw');
   const btn   = document.getElementById('pwToggle');
