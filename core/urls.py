@@ -41,6 +41,7 @@ urlpatterns = [
     path("cry/", include("predictions.urls", namespace="predictions")),
     path("doctors/", include("physicians.urls", namespace="physicians")),
     path("consultations/", include("consultations.urls", namespace="consultations")),
+    path("push/",          include("notifications.urls", namespace="notifications")),
 ]
 
 # Serve media files in development

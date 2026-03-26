@@ -198,6 +198,19 @@ def request_consultation(request):
         mother_lon=lon if lon else None,
     )
 
+    # Notify the doctor via Web Push
+    try:
+        from notifications.services import send_push_to_user
+        child_name = child.name if child else "a baby"
+        send_push_to_user(
+            physician.user,
+            title="New Consultation Request 🩺",
+            body=f"{mother.first_name} needs help with {child_name}. Tap to respond.",
+            url="/consultations/inbox/",
+        )
+    except Exception:
+        pass
+
     return redirect("consultations:waiting", pk=consultation.pk)
 
 

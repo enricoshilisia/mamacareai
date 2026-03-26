@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'predictions',
     'physicians',
     'consultations',
+    'notifications',
 ]
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.vapid_public_key',
             ],
         },
     },
@@ -140,6 +142,17 @@ AZURE_OPENAI_ENDPOINT    = env("AZURE_OPENAI_ENDPOINT", default="")
 AZURE_OPENAI_KEY         = env("AZURE_OPENAI_KEY", default="")
 AZURE_OPENAI_DEPLOYMENT  = env("AZURE_OPENAI_DEPLOYMENT", default="")
 AZURE_OPENAI_API_VERSION = env("AZURE_OPENAI_API_VERSION", default="2024-05-01-preview")
+
+# ─── Web Push (VAPID) ─────────────────────────────────────────────────────────
+# VAPID_PUBLIC_KEY  → URL-safe base64 uncompressed EC point (sent to browser)
+# VAPID_PRIVATE_KEY_B64 → base64-encoded PEM (stored in env, decoded below)
+# Add both to Azure App Settings and local .env
+
+import base64 as _b64
+VAPID_PUBLIC_KEY   = env("VAPID_PUBLIC_KEY", default="")
+_priv_b64          = env("VAPID_PRIVATE_KEY_B64", default="")
+VAPID_PRIVATE_KEY  = _b64.b64decode(_priv_b64).decode() if _priv_b64 else ""
+VAPID_ADMIN_EMAIL  = env("VAPID_ADMIN_EMAIL", default="admin@mamacare.com")
 
 # ─── Production security hardening ────────────────────────────────────────────
 

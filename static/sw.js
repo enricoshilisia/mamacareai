@@ -1,4 +1,4 @@
-const CACHE = 'mamacare-v1';
+const CACHE = 'mamacare-v2';
 
 const STATIC_ASSETS = [
   '/',
@@ -21,6 +21,32 @@ self.addEventListener('activate', e => {
     )
   );
   self.clients.claim();
+});
+
+// ── Push notifications ──────────────────────────────────────────────────────
+self.addEventListener('push', e => {
+  const data = e.data ? e.data.json() : {};
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'MamaCare', {
+      body:  data.body  || '',
+      icon:  '/static/icons/icon-192.png',
+      badge: '/static/icons/icon-48.png',
+      data:  { url: data.url || '/' },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = e.notification.data?.url || '/';
+  e.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wins => {
+      for (const win of wins) {
+        if (win.url.includes(url) && 'focus' in win) return win.focus();
+      }
+      return clients.openWindow(url);
+    })
+  );
 });
 
 // Fetch strategy:
