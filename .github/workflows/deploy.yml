@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: mamacare-h6gzgbceekgbhwgv
+  AZURE_WEBAPP_NAME: mamacare
   AZURE_RESOURCE_GROUP: rg-ResilientEco-Guardian
   PYTHON_VERSION: '3.12'
 
