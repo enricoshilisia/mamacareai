@@ -5,6 +5,7 @@ app_name = "consultations"
 
 urlpatterns = [
     path("assess/<uuid:conv_id>/",   views.assess,                name="assess"),
+    path("doctors/",                 views.doctors_list,          name="doctors_list"),
     path("assess-cry/",              views.assess_cry,            name="assess_cry"),
     path("request/",                 views.request_consultation,  name="request"),
     path("<uuid:pk>/waiting/",       views.waiting,               name="waiting"),

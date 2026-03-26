@@ -1,4 +1,5 @@
 import json
+import math
 from datetime import datetime, timezone as dt_timezone
 
 from django.contrib.auth.decorators import login_required
@@ -40,7 +41,38 @@ def _find_doctors(specialist, lat=None, lon=None, mother_city=None):
         city_lower = mother_city.lower()
         doctors.sort(key=lambda d: (0 if d.city.lower() == city_lower else 1, d.full_name))
 
-    return doctors[:3]
+    return doctors[:10]
+
+
+@login_required
+def doctors_list(request):
+    """
+    GET consultations/doctors/?lat=...&lon=...
+    Returns all approved, available doctors as JSON. No AI call needed.
+    """
+    lat = request.GET.get("lat")
+    lon = request.GET.get("lon")
+    doctors = _find_doctors(None, lat=lat, lon=lon,
+                            mother_city=getattr(request.user, "city", None))
+    data = []
+    for d in doctors:
+        dist = None
+        if lat and lon:
+            try:
+                d_val = d.distance_from(float(lat), float(lon))
+                dist = round(d_val, 1) if math.isfinite(d_val) else None
+            except (ValueError, TypeError):
+                pass
+        data.append({
+            "id":             str(d.id),
+            "name":           d.full_name,
+            "specialization": d.get_specialization_display(),
+            "hospital":       d.hospital or "",
+            "city":           d.city or "",
+            "country":        d.country or "",
+            "distance_km":    dist,
+        })
+    return JsonResponse({"doctors": data})
 
 
 # ── Mother-facing views ────────────────────────────────────────────────────────
@@ -80,15 +112,17 @@ def assess_cry(request):
         dist = None
         if lat and lon:
             try:
-                dist = round(d.distance_from(float(lat), float(lon)), 1)
+                d_val = d.distance_from(float(lat), float(lon))
+                dist = round(d_val, 1) if math.isfinite(d_val) else None
             except (ValueError, TypeError):
                 pass
         doctors_data.append({
             "id":             str(d.id),
             "name":           d.full_name,
             "specialization": d.get_specialization_display(),
-            "hospital":       d.hospital,
-            "city":           d.city,
+            "hospital":       d.hospital or "",
+            "city":           d.city or "",
+            "country":        d.country or "",
             "distance_km":    dist,
         })
 
@@ -129,15 +163,17 @@ def assess(request, conv_id):
                 dist = None
                 if lat and lon:
                     try:
-                        dist = round(d.distance_from(float(lat), float(lon)), 1)
+                        d_val = d.distance_from(float(lat), float(lon))
+                        dist = round(d_val, 1) if math.isfinite(d_val) else None
                     except (ValueError, TypeError):
                         pass
                 doctors_data.append({
                     "id":             str(d.id),
                     "name":           d.full_name,
                     "specialization": d.get_specialization_display(),
-                    "hospital":       d.hospital,
-                    "city":           d.city,
+                    "hospital":       d.hospital or "",
+                    "city":           d.city or "",
+                    "country":        d.country or "",
                     "distance_km":    dist,
                 })
 
@@ -161,8 +197,9 @@ def assess(request, conv_id):
                     "id":             str(d.id),
                     "name":           d.full_name,
                     "specialization": d.get_specialization_display(),
-                    "hospital":       d.hospital,
-                    "city":           d.city,
+                    "hospital":       d.hospital or "",
+                    "city":           d.city or "",
+                    "country":        d.country or "",
                     "distance_km":    None,
                 })
         except Exception:

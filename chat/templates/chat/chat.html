@@ -82,6 +82,8 @@
   }
   .child-avatar { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 17px; overflow: hidden; flex-shrink: 0; }
   .child-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .child-avatar-boy  { background: linear-gradient(135deg, #bfdbfe, #60a5fa); }
+  .child-avatar-girl { background: linear-gradient(135deg, #fce7f3, #fb7185); }
 
   /* ── Messages ── */
   .messages-area {
@@ -332,7 +334,7 @@
 
     {% if child %}
     <div class="child-banner">
-      <div class="child-avatar" style="background:{% if child.gender == 'M' %}linear-gradient(135deg,#bfdbfe,#60a5fa){% else %}linear-gradient(135deg,#fce7f3,#fb7185){% endif %};">
+      <div class="child-avatar {% if child.gender == 'M' %}child-avatar-boy{% else %}child-avatar-girl{% endif %}">
         {% if child.photo %}<img src="{{ child.photo.url }}" alt="{{ child.name }}">
         {% else %}{% if child.gender == 'M' %}👦{% elif child.gender == 'F' %}👧{% else %}👶{% endif %}{% endif %}
       </div>
@@ -464,7 +466,8 @@
   }
 
   function escapeHtml(str) {
-    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   /* ── History ── */
@@ -710,27 +713,33 @@
   /* ════════════════════
      GET DOCTOR ADVICE
   ════════════════════ */
-  var ASSESS_BASE    = "{% url 'consultations:assess' conv_id=conversation.id %}";
-  var CONV_ID        = "{{ conversation.id }}";
+  var DOCTORS_URL = "{% url 'consultations:doctors_list' %}";
+  var ASSESS_URL  = "{% url 'consultations:assess' conv_id=conversation.id %}";
+  var CONV_ID     = "{{ conversation.id }}";
+  var _consultLat = null, _consultLon = null;
+  var _assessment = null;   // { severity, symptoms, specialist } — filled by background fetch
 
-  function openConsultModal(force) {
+  function openConsultModal() {
     document.getElementById('consultModal').style.display = 'flex';
-    // Reset state
     document.getElementById('consultLoading').style.display = 'flex';
-    document.getElementById('consultResult').style.display  = 'none';
+    document.getElementById('consultDoctors').style.display = 'none';
     document.getElementById('consultForm').style.display    = 'none';
+    _assessment = null;
 
-    // Always force=true — the mother deliberately clicked "Get Doctor Advice"
-    var forceFlag = true;
-    // Try geolocation
+    // Start AI assessment in background immediately (silent)
+    fetch(ASSESS_URL + '?force=1')
+      .then(function(r) { return r.json(); })
+      .then(function(data) { _assessment = data; })
+      .catch(function() {}); // silent — fallback used at submit time
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        function(pos) { fetchAssess(pos.coords.latitude, pos.coords.longitude, forceFlag); },
-        function()    { fetchAssess(null, null, forceFlag); },
+        function(pos) { _consultLat = pos.coords.latitude; _consultLon = pos.coords.longitude; fetchDoctorsList(); },
+        function()    { fetchDoctorsList(); },
         { timeout: 5000 }
       );
     } else {
-      fetchAssess(null, null, forceFlag);
+      fetchDoctorsList();
     }
   }
 
@@ -738,90 +747,55 @@
     document.getElementById('consultModal').style.display = 'none';
   }
 
-  function fetchAssess(lat, lon, force) {
-    var url = ASSESS_BASE;
-    var params = [];
-    if (lat !== null && lon !== null) { params.push('lat=' + lat); params.push('lon=' + lon); }
-    if (force) params.push('force=1');
-    if (params.length) url += '?' + params.join('&');
-    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
+  function fetchDoctorsList() {
+    var url = DOCTORS_URL;
+    if (_consultLat !== null) url += '?lat=' + _consultLat + '&lon=' + _consultLon;
+    fetch(url)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
         document.getElementById('consultLoading').style.display = 'none';
-        renderAssessResult(data, lat, lon);
+        var html = '';
+        if (data.doctors && data.doctors.length > 0) {
+          data.doctors.forEach(function(d, i) {
+            html += '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px;border:1.5px solid var(--rose-border);border-radius:12px;margin-bottom:8px;">'
+              + '<input type="radio" name="doctor_select" value="'+d.id+'" style="margin-top:3px;accent-color:var(--rose);" '+(i===0?'checked':'')+' required>'
+              + '<div style="flex:1;min-width:0;">'
+              + '<p style="font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 1px;">Dr. '+escapeHtml(d.name)+'</p>'
+              + '<p style="font-size:11.5px;color:var(--ink-3);margin:0;">'+escapeHtml(d.specialization)+' · '+escapeHtml(d.hospital)+'</p>'
+              + '<p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">📍 '+escapeHtml(d.city)+(d.country ? ', '+escapeHtml(d.country) : '')+(d.distance_km !== null && d.distance_km !== undefined ? ' · '+d.distance_km+' km away' : '')+'</p>'
+              + '</div></label>';
+          });
+          document.getElementById('consultDoctors').innerHTML = html;
+          document.getElementById('consultDoctors').style.display = 'block';
+          document.getElementById('consultForm').style.display = 'block';
+        } else {
+          document.getElementById('consultDoctors').innerHTML = '<p style="font-size:13px;color:var(--ink-3);background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:8px;padding:10px 12px;">No available doctors right now. Please try again later.</p>';
+          document.getElementById('consultDoctors').style.display = 'block';
+        }
       })
-      .catch(function(){
+      .catch(function(err) {
+        console.error('fetchDoctorsList error:', err);
         document.getElementById('consultLoading').style.display = 'none';
-        document.getElementById('consultResult').style.display  = 'block';
-        document.getElementById('consultResult').innerHTML = '<p style="color:#991b1b;font-size:13px;">Could not assess symptoms. Please try again.</p>';
+        document.getElementById('consultDoctors').innerHTML = '<p style="color:#991b1b;font-size:13px;">Could not load doctors. Please try again.</p>';
+        document.getElementById('consultDoctors').style.display = 'block';
       });
-  }
-
-  var SEV_COLORS = {
-    mild:     { bg:'#dcfce7', color:'#166534', border:'#86efac', dot:'🟢' },
-    moderate: { bg:'#fef9c3', color:'#854d0e', border:'#fde047', dot:'🟡' },
-    severe:   { bg:'#ffedd5', color:'#9a3412', border:'#fdba74', dot:'🟠' },
-    critical: { bg:'#fee2e2', color:'#991b1b', border:'#fca5a5', dot:'🔴' },
-  };
-
-  function renderAssessResult(data, lat, lon) {
-    var sev    = data.severity || 'mild';
-    var sc     = SEV_COLORS[sev] || SEV_COLORS.mild;
-    var sevLabel = sev.charAt(0).toUpperCase() + sev.slice(1);
-
-    var html = '<div style="margin-bottom:14px;">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
-      + '<span style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;'
-      + 'background:'+sc.bg+';color:'+sc.color+';border:1px solid '+sc.border+';border-radius:99px;padding:3px 10px;">'
-      + sc.dot + ' ' + sevLabel + '</span>'
-      + '<span style="font-size:12px;color:var(--ink-3);">Recommended specialist: <strong>' + (data.specialist||'').replace(/_/g,' ') + '</strong></span>'
-      + '</div>'
-      + '<p style="font-size:13px;color:var(--ink-2);line-height:1.65;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:8px;padding:10px 12px;margin:0;">'
-      + escapeHtml(data.symptoms || '')
-      + '</p>'
-      + '</div>';
-
-    // Show doctors (always shown when force=true; otherwise only moderate+)
-    if (data.doctors && data.doctors.length > 0) {
-      html += '<p style="font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">Top doctors nearby</p>';
-      data.doctors.forEach(function(d, i) {
-        html += '<label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;padding:10px;border:1.5px solid var(--rose-border);border-radius:12px;margin-bottom:8px;transition:border-color .12s;" '
-          + 'onmouseover="this.style.borderColor=\'var(--rose)\'" onmouseout="this.style.borderColor=\'var(--rose-border)\'">'
-          + '<input type="radio" name="doctor_select" value="'+d.id+'" style="margin-top:3px;accent-color:var(--rose);" '+(i===0?'checked':'')+' required>'
-          + '<div style="flex:1;min-width:0;">'
-          + '<p style="font-size:13.5px;font-weight:600;color:var(--ink);margin:0 0 1px;">Dr. '+escapeHtml(d.name)+'</p>'
-          + '<p style="font-size:11.5px;color:var(--ink-3);margin:0;">'+escapeHtml(d.specialization)+' · '+escapeHtml(d.hospital)+'</p>'
-          + (d.distance_km !== null && d.distance_km !== undefined ? '<p style="font-size:11px;color:var(--rose-mid);margin:2px 0 0;">📍 '+d.distance_km+' km away</p>' : '<p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">'+escapeHtml(d.city)+'</p>')
-          + '</div>'
-          + '</label>';
-      });
-    } else {
-      html += '<p style="font-size:13px;color:var(--ink-3);background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:8px;padding:10px 12px;">No available doctors found in your area. Please contact a hospital directly.</p>';
-    }
-
-    document.getElementById('consultResult').innerHTML  = html;
-    document.getElementById('consultResult').style.display = 'block';
-
-    if (data.doctors && data.doctors.length > 0) {
-      // Build hidden fields for form
-      var form = document.getElementById('consultForm');
-      form.querySelector('[name="symptoms"]').value  = data.symptoms || '';
-      form.querySelector('[name="severity"]').value  = data.severity || '';
-      form.querySelector('[name="specialist"]').value = data.specialist || '';
-      form.querySelector('[name="conv_id"]').value   = data.conv_id || CONV_ID;
-      form.querySelector('[name="child_id"]').value  = data.child_id || '';
-      form.querySelector('[name="lat"]').value       = lat !== null ? lat : '';
-      form.querySelector('[name="lon"]').value       = lon !== null ? lon : '';
-      form.style.display = 'block';
-    }
   }
 
   function submitConsult(e) {
     e.preventDefault();
     var selected = document.querySelector('input[name="doctor_select"]:checked');
     if (!selected) { alert('Please select a doctor.'); return; }
-    document.getElementById('consultForm').querySelector('[name="physician_id"]').value = selected.value;
-    document.getElementById('consultForm').submit();
+    var form = document.getElementById('consultForm');
+    form.querySelector('[name="physician_id"]').value = selected.value;
+    form.querySelector('[name="lat"]').value = _consultLat !== null ? _consultLat : '';
+    form.querySelector('[name="lon"]').value = _consultLon !== null ? _consultLon : '';
+    // Use AI-generated assessment if available, else a safe default
+    if (_assessment) {
+      form.querySelector('[name="symptoms"]').value  = _assessment.symptoms  || '';
+      form.querySelector('[name="severity"]').value  = _assessment.severity  || 'moderate';
+      form.querySelector('[name="specialist"]').value = _assessment.specialist || 'pediatrician';
+    }
+    form.submit();
   }
 </script>
 
@@ -838,37 +812,37 @@
                    font-size:18px;color:var(--ink-3);line-height:1;">✕</button>
 
     <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--rose-deep);margin:0 0 4px;">
-      🩺 Get Doctor Advice
+      🩺 Request a Doctor
     </h3>
-    <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 18px;">
-      AI is assessing your child's symptoms to recommend the right specialist…
+    <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 16px;">
+      Select a doctor — your conversation will be summarised and sent to them.
     </p>
 
     {# Loading #}
     <div id="consultLoading" style="display:flex;flex-direction:column;align-items:center;padding:24px 0;gap:12px;">
       <div style="width:40px;height:40px;border-radius:50%;border:3px solid var(--rose-border);border-top-color:var(--rose);animation:spin .9s linear infinite;"></div>
-      <p style="font-size:13px;color:var(--ink-3);margin:0;">Analysing symptoms…</p>
+      <p style="font-size:13px;color:var(--ink-3);margin:0;">Finding available doctors…</p>
     </div>
 
-    {# Result area (filled by JS) #}
-    <div id="consultResult" style="display:none;"></div>
+    {# Doctor list (filled by JS) #}
+    <div id="consultDoctors" style="display:none;"></div>
 
-    {# Form (shown after result) #}
-    <form id="consultForm" method="post" action="{% url 'consultations:request' %}" onsubmit="submitConsult(event)" style="display:none;margin-top:14px;">
+    {# Form #}
+    <form id="consultForm" method="post" action="{% url 'consultations:request' %}" onsubmit="submitConsult(event)" style="display:none;margin-top:10px;">
       {% csrf_token %}
       <input type="hidden" name="physician_id" value="">
-      <input type="hidden" name="symptoms"     value="">
-      <input type="hidden" name="severity"     value="">
-      <input type="hidden" name="specialist"   value="">
-      <input type="hidden" name="conv_id"      value="">
-      <input type="hidden" name="child_id"     value="">
+      <input type="hidden" name="severity"     value="moderate">
+      <input type="hidden" name="specialist"   value="pediatrician">
+      <input type="hidden" name="conv_id"      value="{{ conversation.id }}">
+      <input type="hidden" name="child_id"     value="{% if child %}{{ child.pk }}{% endif %}">
       <input type="hidden" name="lat"          value="">
       <input type="hidden" name="lon"          value="">
+      <input type="hidden" name="symptoms"     value="">
       <button type="submit"
               style="width:100%;padding:13px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));
                      color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;
                      cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-top:10px;">
-        Request Consultation →
+        Send Request →
       </button>
     </form>
 
