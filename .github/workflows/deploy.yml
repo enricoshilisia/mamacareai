@@ -88,24 +88,6 @@ jobs:
         tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8F15DACAAA864B6397D2792E0B40CCAC }}
         subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2247510417344568B20383AA8F3F71AD }}
 
-    - name: Configure Web App startup & build settings
-      uses: azure/CLI@v2
-      with:
-        inlineScript: |
-          az webapp config set \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --startup-file "bash /home/site/wwwroot/startup.sh"
-
-          az webapp config appsettings set \
-            --name ${{ env.AZURE_WEBAPP_NAME }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --settings \
-              SCM_DO_BUILD_DURING_DEPLOYMENT=true \
-              ENABLE_ORYX_BUILD=true \
-              WEBSITE_RUN_FROM_PACKAGE=0 \
-              PYTHON_VERSION=${{ env.PYTHON_VERSION }}
-
     - name: Deploy to Azure Web App (attempt 1)
       id: deploy1
       continue-on-error: true
