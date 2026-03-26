@@ -278,13 +278,15 @@
     #pg-bar.done { transform: scaleX(1); opacity: 0; transition: transform 0.18s ease, opacity 0.3s ease 0.08s; }
   </style>
 
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-48.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/icons/apple-touch-icon.png">
   <link rel="manifest" href="/static/manifest.json">
   <meta name="theme-color" content="#f43f5e">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="MamaCare">
-  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 
   {% block extra_head %}{% endblock %}
 </head>
@@ -307,8 +309,13 @@
 
 <aside class="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-name">MamaCare</div>
-    <div class="brand-sub">Your newborn companion</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <img src="/static/icons/icon-48.png" alt="MamaCare" style="width:32px;height:32px;border-radius:8px;flex-shrink:0;">
+      <div>
+        <div class="brand-name">MamaCare</div>
+        <div class="brand-sub">Your newborn companion</div>
+      </div>
+    </div>
   </div>
 
   <nav class="sidebar-nav">

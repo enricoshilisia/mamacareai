@@ -42,6 +42,63 @@ def _find_doctors(specialist, lat=None, lon=None, mother_city=None):
 
 # ── Mother-facing views ────────────────────────────────────────────────────────
 
+# Cry type → (severity, specialist)
+_CRY_SEVERITY = {
+    "hungry":     ("mild",     "pediatrician"),
+    "tired":      ("mild",     "pediatrician"),
+    "burping":    ("mild",     "pediatrician"),
+    "lonely":     ("mild",     "pediatrician"),
+    "cold_hot":   ("mild",     "pediatrician"),
+    "discomfort": ("moderate", "pediatrician"),
+    "belly_pain": ("moderate", "pediatrician"),
+    "scared":     ("moderate", "pediatrician"),
+}
+
+
+@login_required
+def assess_cry(request):
+    """
+    GET consultations/assess-cry/?cry_type=...&lat=...&lon=...&child_id=...
+    Returns doctors near the mother based on cry analysis result.
+    """
+    cry_type   = request.GET.get("cry_type", "")
+    lat        = request.GET.get("lat")
+    lon        = request.GET.get("lon")
+    child_id   = request.GET.get("child_id", "")
+
+    severity, specialist = _CRY_SEVERITY.get(cry_type, ("moderate", "pediatrician"))
+    symptoms = f"Baby cry analysis result: {cry_type.replace('_', ' ').title()}. Mother is seeking guidance."
+
+    mother  = request.user
+    doctors = _find_doctors(specialist, lat=lat, lon=lon, mother_city=getattr(mother, "city", None))
+
+    doctors_data = []
+    for d in doctors:
+        dist = None
+        if lat and lon:
+            try:
+                dist = round(d.distance_from(float(lat), float(lon)), 1)
+            except (ValueError, TypeError):
+                pass
+        doctors_data.append({
+            "id":             str(d.id),
+            "name":           d.full_name,
+            "specialization": d.get_specialization_display(),
+            "hospital":       d.hospital,
+            "city":           d.city,
+            "distance_km":    dist,
+        })
+
+    return JsonResponse({
+        "severity":   severity,
+        "symptoms":   symptoms,
+        "specialist": specialist,
+        "doctors":    doctors_data,
+        "conv_id":    "",
+        "child_id":   child_id,
+    })
+
+
 @login_required
 def assess(request, conv_id):
     """

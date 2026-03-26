@@ -58,6 +58,8 @@
   .guidance-body p      { margin-bottom: 10px; font-size: 13.5px; line-height: 1.65; }
   .guidance-body p:last-child { margin-bottom: 0; }
 
+  @keyframes spin { to { transform: rotate(360deg); } }
+
   /* ── Serious alert ── */
   .serious-alert {
     background: #fff5f5; border: 1px solid #fecaca;
@@ -180,7 +182,7 @@
   {% endif %}
 
   {# ── Actions ── #}
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
     <a href="{% url 'predictions:cry_analyser' %}"
        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:var(--surface);border:1.5px solid var(--rose-border);border-radius:12px;color:var(--ink-2);font-size:13px;font-weight:600;text-decoration:none;transition:background .13s;"
        onmouseover="this.style.background='var(--rose-pale)'"
@@ -192,6 +194,11 @@
       💬 Ask AI More
     </a>
   </div>
+  <button onclick="openDoctorModal()"
+          style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:linear-gradient(135deg,#be123c,#881337);border:none;border-radius:12px;color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 3px 12px rgba(136,19,55,.3);margin-bottom:24px;transition:opacity .12s;"
+          onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+    🩺 Find a Nearby Doctor
+  </button>
 
   {# ── Past analyses link ── #}
   <div style="text-align:center;">
@@ -201,6 +208,22 @@
     </a>
   </div>
 
+</div>
+
+{# ── Doctor modal ── #}
+<div id="doctorModal" style="display:none;position:fixed;inset:0;background:rgba(253,248,249,0.92);backdrop-filter:blur(8px);z-index:400;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:20px;padding:28px 24px;width:min(420px,100%);max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(190,18,60,.15);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--rose-deep);margin:0;">🩺 Find a Doctor</h3>
+      <button onclick="closeDoctorModal()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--ink-3);line-height:1;">✕</button>
+    </div>
+    <div id="doctorModalBody">
+      <div style="text-align:center;padding:20px 0;">
+        <div style="width:40px;height:40px;border-radius:50%;border:3px solid var(--rose-border);border-top-color:var(--rose);animation:spin .9s linear infinite;margin:0 auto 12px;"></div>
+        <p style="font-size:13px;color:var(--ink-3);">Finding doctors near you…</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -227,5 +250,106 @@
     const w = bar.getAttribute('data-width');
     setTimeout(() => { bar.style.width = w + '%'; }, 400);
   });
+
+  // ── Doctor modal ──
+  const ASSESS_CRY_URL = "{% url 'consultations:assess_cry' %}";
+  const REQUEST_URL    = "{% url 'consultations:request' %}";
+  const CSRF           = "{{ csrf_token }}";
+  const CRY_TYPE       = "{{ analysis.cry_type }}";
+  const CHILD_ID       = "{% if child %}{{ child.pk }}{% endif %}";
+  let _doctorData = null;
+  let _userLat = null, _userLon = null;
+
+  function openDoctorModal() {
+    const modal = document.getElementById('doctorModal');
+    modal.style.display = 'flex';
+    navigator.geolocation?.getCurrentPosition(
+      pos => { _userLat = pos.coords.latitude; _userLon = pos.coords.longitude; fetchDoctors(); },
+      ()  => fetchDoctors()
+    );
+    fetchDoctors();
+  }
+
+  function closeDoctorModal() {
+    document.getElementById('doctorModal').style.display = 'none';
+  }
+
+  async function fetchDoctors() {
+    let url = `${ASSESS_CRY_URL}?cry_type=${CRY_TYPE}`;
+    if (_userLat) url += `&lat=${_userLat}&lon=${_userLon}`;
+    if (CHILD_ID)  url += `&child_id=${CHILD_ID}`;
+    try {
+      const res  = await fetch(url, { credentials: 'same-origin' });
+      const data = await res.json();
+      _doctorData = data;
+      renderDoctors(data);
+    } catch (e) {
+      document.getElementById('doctorModalBody').innerHTML =
+        '<p style="font-size:13px;color:#dc2626;text-align:center;">Could not load doctors. Please try again.</p>';
+    }
+  }
+
+  function renderDoctors(data) {
+    if (!data.doctors || data.doctors.length === 0) {
+      document.getElementById('doctorModalBody').innerHTML =
+        '<p style="font-size:13px;color:var(--ink-3);text-align:center;padding:20px 0;">No doctors available in your area right now.</p>';
+      return;
+    }
+
+    const SEVCOLORS = { mild:'#16a34a', moderate:'#d97706', severe:'#dc2626', critical:'#7c3aed' };
+    const sevColor  = SEVCOLORS[data.severity] || '#d97706';
+
+    let html = `<p style="font-size:12px;color:${sevColor};font-weight:600;margin:0 0 16px;display:flex;align-items:center;gap:6px;">
+      <span style="width:8px;height:8px;border-radius:50%;background:${sevColor};display:inline-block;"></span>
+      ${data.severity.charAt(0).toUpperCase()+data.severity.slice(1)} concern · ${data.specialist.replace(/_/g,' ')} recommended
+    </p>
+    <form id="doctorForm">`;
+
+    data.doctors.forEach((d, i) => {
+      html += `<label style="display:flex;align-items:center;gap:12px;border:1.5px solid var(--rose-border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .12s;">
+        <input type="radio" name="physician_id" value="${d.id}" ${i===0?'checked':''} style="accent-color:var(--rose);flex-shrink:0;">
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0;">${d.name}</p>
+          <p style="font-size:11.5px;color:var(--ink-3);margin:2px 0 0;">${d.specialization}${d.hospital?' · '+d.hospital:''}</p>
+          ${d.distance_km !== null ? `<p style="font-size:11px;color:var(--rose-mid);margin:2px 0 0;">📍 ${d.distance_km} km away</p>` : (d.city ? `<p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">📍 ${d.city}</p>` : '')}
+        </div>
+      </label>`;
+    });
+
+    html += `</form>
+    <button onclick="submitDoctorRequest()"
+            style="width:100%;margin-top:6px;padding:12px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border:none;border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;box-shadow:0 3px 12px rgba(190,18,60,.28);">
+      Request Consultation
+    </button>`;
+
+    document.getElementById('doctorModalBody').innerHTML = html;
+  }
+
+  async function submitDoctorRequest() {
+    if (!_doctorData) return;
+    const form = document.getElementById('doctorForm');
+    const selected = form?.querySelector('input[name="physician_id"]:checked');
+    if (!selected) return;
+
+    const body = new URLSearchParams({
+      physician_id: selected.value,
+      conv_id:      '',
+      symptoms:     _doctorData.symptoms,
+      severity:     _doctorData.severity,
+      specialist:   _doctorData.specialist,
+      child_id:     CHILD_ID,
+      lat:          _userLat || '',
+      lon:          _userLon || '',
+    });
+
+    const res = await fetch(REQUEST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF },
+      body: body.toString(),
+    });
+    if (res.redirected) { location.href = res.url; }
+    else if (res.ok)    { location.href = res.url || '/'; }
+  }
+
 </script>
 {% endblock %}

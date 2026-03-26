@@ -26,6 +26,12 @@ def build_system_prompt(mother, child=None) -> str:
         "- Keep responses concise and easy to read. Use short paragraphs.",
         "- You are based in Kenya. Be aware of local context where relevant.",
         "",
+        "SPECIAL FORMAT — Crying questions:",
+        "When a mother asks about her baby crying (e.g. 'why is she crying?', 'she won't "
+        "stop crying'), give your normal warm, helpful response. Then on a new line at the "
+        "very end, add exactly this token and nothing after it: [RECORD_CRY]",
+        "Use ONLY this token for crying questions. Never use it for any other topic.",
+        "",
         f"Mother's name: {mother.full_name}",
         f"Location: {mother.city or 'Kenya'}",
     ]
