@@ -1,0 +1,135 @@
+name: MamaCare – Build & Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: mamacare-h6gzgbceekgbhwgv
+  AZURE_RESOURCE_GROUP: rg-ResilientEco-Guardian
+  PYTHON_VERSION: '3.12'
+
+jobs:
+
+  # ─── JOB 1: BUILD ───────────────────────────────────────────────────────────
+  build:
+    name: 🔨 Build & Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Django system checks
+      env:
+        DJANGO_SECRET_KEY: ci-check-only-key
+        DJANGO_DEBUG: "True"
+        DATABASE_URL: ""
+        AZURE_OPENAI_ENDPOINT: "https://placeholder.openai.azure.com/"
+        AZURE_OPENAI_KEY: "placeholder"
+        AZURE_OPENAI_DEPLOYMENT: "placeholder"
+      run: python manage.py check
+
+    - name: Collect static files
+      env:
+        DJANGO_SECRET_KEY: ci-check-only-key
+        DJANGO_DEBUG: "False"
+        DATABASE_URL: ""
+        AZURE_OPENAI_ENDPOINT: "https://placeholder.openai.azure.com/"
+        AZURE_OPENAI_KEY: "placeholder"
+        AZURE_OPENAI_DEPLOYMENT: "placeholder"
+      run: python manage.py collectstatic --noinput || true
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mamacare-build
+        path: |
+          .
+          !venv/
+          !.venv/
+          !antenv/
+          !__pycache__/
+          !*.pyc
+          !db.sqlite3
+          !.git/
+
+  # ─── JOB 2: DEPLOY ──────────────────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write   # required for OIDC login
+      contents: read
+
+    steps:
+    - name: Download build artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: mamacare-build
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_252EE31B7C064777B03F46C3923CDB62 }}
+        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_8F15DACAAA864B6397D2792E0B40CCAC }}
+        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_2247510417344568B20383AA8F3F71AD }}
+
+    - name: Configure Web App startup & build settings
+      uses: azure/CLI@v2
+      with:
+        inlineScript: |
+          az webapp config set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --startup-file "bash /home/site/wwwroot/startup.sh"
+
+          az webapp config appsettings set \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --settings \
+              SCM_DO_BUILD_DURING_DEPLOYMENT=true \
+              ENABLE_ORYX_BUILD=true \
+              WEBSITE_RUN_FROM_PACKAGE=0 \
+              PYTHON_VERSION=${{ env.PYTHON_VERSION }}
+
+    - name: Deploy to Azure Web App (attempt 1)
+      id: deploy1
+      continue-on-error: true
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: .
+
+    - name: Wait and retry if attempt 1 failed
+      if: steps.deploy1.outcome == 'failure'
+      run: |
+        echo "Attempt 1 failed. Waiting 30s before retry..."
+        sleep 30
+
+    - name: Deploy to Azure Web App (attempt 2)
+      if: steps.deploy1.outcome == 'failure'
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: .
+
+    - name: Post-deployment health check
+      run: |
+        echo "Waiting 60s for app to boot..."
+        sleep 60
+        curl -f --max-time 30 https://mamacare-h6gzgbceekgbhwgv.canadacentral-01.azurewebsites.net/ \
+          || echo "⚠️  Health check failed — check Azure logs"

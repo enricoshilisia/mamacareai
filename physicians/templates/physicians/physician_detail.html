@@ -1,0 +1,169 @@
+{% extends base_template %}
+{% block title %}Dr. {{ physician.full_name }} – MamaCare{% endblock %}
+{% block topbar_title %}Doctor Profile{% endblock %}
+
+{% block extra_head %}
+<style>
+  .star-radio { display: flex; gap: 8px; margin-bottom: 12px; }
+  .star-radio input { display: none; }
+  .star-radio label {
+    font-size: 28px; cursor: pointer; color: #d1d5db;
+    transition: color .1s;
+  }
+  .star-radio input:checked ~ label,
+  .star-radio label:hover,
+  .star-radio label:hover ~ label { color: #f59e0b; }
+  .star-radio { flex-direction: row-reverse; justify-content: flex-end; }
+  .star-radio label:hover,
+  .star-radio label:hover ~ label { color: #f59e0b !important; }
+
+  .review-card {
+    background: var(--surface); border: 1px solid var(--rose-border);
+    border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:620px;margin:0 auto;">
+
+  {# ── Back ── #}
+  <a href="{% url 'physicians:physician_list' %}"
+     style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3);text-decoration:none;margin-bottom:20px;">
+    ← Back to doctors
+  </a>
+
+  {# ── Doctor card ── #}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:18px;padding:24px;margin-bottom:16px;">
+    <div style="display:flex;align-items:flex-start;gap:16px;">
+      <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;background:linear-gradient(135deg,var(--rose-pale),var(--rose-blush));">
+        {% if physician.photo %}<img src="{{ physician.photo.url }}" style="width:100%;height:100%;object-fit:cover;">
+        {% else %}👨‍⚕️{% endif %}
+      </div>
+      <div style="flex:1;">
+        <h1 style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--rose-deep);margin:0 0 4px;">
+          Dr. {{ physician.full_name }}
+        </h1>
+        <p style="font-size:13px;font-weight:600;color:var(--ink-2);margin:0 0 4px;">
+          {{ physician.get_specialization_display }}
+        </p>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">
+          {{ physician.hospital }} · {{ physician.city }}
+        </p>
+
+        {% if physician.rating > 0 %}
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <span style="color:#f59e0b;font-size:14px;">
+            {% for i in "12345" %}{% if forloop.counter <= physician.rating %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+          <span style="font-size:12px;color:var(--ink-3);">{{ physician.rating }} · {{ physician.review_count }} review{{ physician.review_count|pluralize }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if physician.bio %}
+    <p style="font-size:13.5px;color:var(--ink-2);line-height:1.65;margin:16px 0 0;padding-top:16px;border-top:1px solid var(--rose-border);">
+      {{ physician.bio }}
+    </p>
+    {% endif %}
+  </div>
+
+  {# ── Contact ── #}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:14px;padding:18px 20px;margin-bottom:16px;">
+    <p style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 12px;">Contact</p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <a href="tel:{{ physician.phone }}"
+         style="display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--rose-pale);display:flex;align-items:center;justify-content:center;font-size:16px;">📞</div>
+        <div>
+          <p style="font-size:12px;color:var(--ink-3);margin:0;">Phone</p>
+          <p style="font-size:13.5px;font-weight:600;color:var(--rose-mid);margin:0;">{{ physician.phone }}</p>
+        </div>
+      </a>
+      {% if physician.address %}
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:9px;background:var(--rose-pale);display:flex;align-items:center;justify-content:center;font-size:16px;">📍</div>
+        <div>
+          <p style="font-size:12px;color:var(--ink-3);margin:0;">Address</p>
+          <p style="font-size:13.5px;font-weight:500;color:var(--ink);margin:0;">{{ physician.address }}</p>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Reviews ── #}
+  <div style="margin-bottom:20px;">
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin:0 0 14px;">
+      Reviews
+    </h2>
+
+    {% if reviews %}
+      {% for review in reviews %}
+      <div class="review-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--rose-deep));display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:white;font-weight:600;">
+              {{ review.mother.first_name|slice:":1"|upper }}
+            </div>
+            <p style="font-size:12.5px;font-weight:600;color:var(--ink);margin:0;">{{ review.mother.first_name }}</p>
+          </div>
+          <span style="color:#f59e0b;font-size:13px;">
+            {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+        </div>
+        {% if review.comment %}
+        <p style="font-size:13px;color:var(--ink-2);margin:0;line-height:1.6;">{{ review.comment }}</p>
+        {% endif %}
+        <p style="font-size:11px;color:var(--ink-3);margin:6px 0 0;">{{ review.created_at|date:"d M Y" }}</p>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p style="font-size:13px;color:var(--ink-3);">No reviews yet. Be the first to review Dr. {{ physician.full_name }}.</p>
+    {% endif %}
+  </div>
+
+  {# ── Leave a review ── #}
+  {% if not existing_review and review_form %}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:22px;margin-bottom:24px;">
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--rose-deep);margin:0 0 16px;">
+      Leave a Review
+    </h3>
+    <form method="post">
+      {% csrf_token %}
+
+      <p style="font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.03em;text-transform:uppercase;margin:0 0 8px;">Your Rating</p>
+      <div class="star-radio" id="starRating">
+        {% for val in "54321" %}
+        <input type="radio" name="rating" id="star{{ val }}" value="{{ val }}"
+               {% if review_form.rating.value == val %}checked{% endif %}>
+        <label for="star{{ val }}" title="{{ val }} star{{ val|add:'0'|pluralize }}">★</label>
+        {% endfor %}
+      </div>
+
+      <div style="margin-top:14px;">
+        <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.03em;text-transform:uppercase;margin-bottom:6px;">
+          Comment <span style="font-weight:400;text-transform:none;color:var(--ink-3);">(optional)</span>
+        </label>
+        <textarea name="comment" rows="3"
+                  placeholder="Share your experience..."
+                  style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;transition:border-color .15s;"
+                  onfocus="this.style.borderColor='var(--rose-mid)'"
+                  onblur="this.style.borderColor='var(--rose-border)'">{{ review_form.comment.value|default:'' }}</textarea>
+      </div>
+
+      <button type="submit"
+              style="margin-top:14px;padding:11px 24px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;font-size:13px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        Submit Review
+      </button>
+    </form>
+  </div>
+  {% elif existing_review %}
+  <div style="background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:12px;padding:14px 16px;margin-bottom:24px;font-size:13px;color:var(--ink-2);">
+    ✅ You have already reviewed Dr. {{ physician.full_name }}.
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends "mothers/base.html" %}
+{% block title %}Cry Result – MamaCare{% endblock %}
+{% block topbar_title %}Cry Analysis Result{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* ── Cry type badge ── */
+  .cry-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 99px;
+    font-size: 14px; font-weight: 600;
+    background: var(--rose-pale); color: var(--rose-deep);
+    border: 1px solid var(--rose-border);
+  }
+
+  /* ── Confidence bar ── */
+  .conf-track {
+    height: 8px; background: var(--rose-border);
+    border-radius: 99px; overflow: hidden; margin-top: 6px;
+  }
+  .conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--rose), #fb7185);
+    border-radius: 99px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── All probabilities ── */
+  .prob-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .prob-label {
+    width: 90px; font-size: 12px; font-weight: 500;
+    color: var(--ink-2); flex-shrink: 0;
+    text-transform: capitalize;
+  }
+  .prob-bar-track {
+    flex: 1; height: 6px; background: var(--rose-border);
+    border-radius: 99px; overflow: hidden;
+  }
+  .prob-bar-fill {
+    height: 100%; border-radius: 99px;
+    background: var(--rose-blush);
+    transition: width 0.8s ease;
+  }
+  .prob-bar-fill.top { background: linear-gradient(90deg, var(--rose), #fb7185); }
+  .prob-pct {
+    width: 36px; font-size: 11px; font-weight: 600;
+    color: var(--ink-3); text-align: right; flex-shrink: 0;
+  }
+
+  /* ── Guidance markdown ── */
+  .guidance-body strong { font-weight: 600; color: var(--rose-deep); }
+  .guidance-body em     { font-style: italic; }
+  .guidance-body ul, .guidance-body ol { padding-left: 18px; margin: 8px 0; }
+  .guidance-body li     { margin-bottom: 5px; font-size: 13.5px; line-height: 1.6; }
+  .guidance-body p      { margin-bottom: 10px; font-size: 13.5px; line-height: 1.65; }
+  .guidance-body p:last-child { margin-bottom: 0; }
+
+  /* ── Serious alert ── */
+  .serious-alert {
+    background: #fff5f5; border: 1px solid #fecaca;
+    border-radius: 14px; padding: 16px 18px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:580px;margin:0 auto;">
+
+  {# ── Child context ── #}
+  {% if child %}
+  <div style="display:flex;align-items:center;gap:12px;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:14px;padding:12px 16px;margin-bottom:20px;">
+    <div style="width:38px;height:38px;border-radius:10px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;
+      background:{% if child.gender == 'M' %}linear-gradient(135deg,#bfdbfe,#60a5fa){% else %}linear-gradient(135deg,#fce7f3,#fb7185){% endif %};">
+      {% if child.photo %}<img src="{{ child.photo.url }}" style="width:100%;height:100%;object-fit:cover;">
+      {% else %}{% if child.gender == 'M' %}👦{% elif child.gender == 'F' %}👧{% else %}👶{% endif %}{% endif %}
+    </div>
+    <div>
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0;">{{ child.name }}</p>
+      <p style="font-size:11px;color:var(--ink-3);margin:0;">{{ child.age_display }}</p>
+    </div>
+    <div style="margin-left:auto;font-size:11px;color:var(--ink-3);">
+      {{ analysis.created_at|date:"d M Y, H:i" }}
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Serious alert ── #}
+  {% if analysis.is_serious %}
+  <div class="serious-alert" style="margin-bottom:20px;">
+    <span style="font-size:22px;flex-shrink:0;">⚠️</span>
+    <div>
+      <p style="font-size:13px;font-weight:700;color:#b91c1c;margin:0 0 4px;">Medical attention may be needed</p>
+      <p style="font-size:12.5px;color:#7f1d1d;margin:0;line-height:1.5;">
+        This cry pattern may indicate discomfort that needs a doctor's attention.
+        Please read the guidance below carefully and contact your pediatrician if concerned.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Main result card ── #}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:18px;padding:24px;margin-bottom:16px;">
+
+    <p style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;">
+      Cry Classification
+    </p>
+
+    {# Cry type #}
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="font-size:42px;line-height:1;">
+        {% if analysis.cry_type == 'hungry' %}🍼
+        {% elif analysis.cry_type == 'tired' %}😴
+        {% elif analysis.cry_type == 'burping' %}💨
+        {% elif analysis.cry_type == 'discomfort' %}😣
+        {% elif analysis.cry_type == 'lonely' %}🤗
+        {% elif analysis.cry_type == 'scared' %}😨
+        {% elif analysis.cry_type == 'belly_pain' %}😢
+        {% elif analysis.cry_type == 'cold_hot' %}🌡️
+        {% else %}❓{% endif %}
+      </div>
+      <div>
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--rose-deep);margin:0;line-height:1.1;">
+          {{ analysis.get_cry_type_display }}
+        </h2>
+        {% if analysis.confidence %}
+        <p style="font-size:12px;color:var(--ink-3);margin:4px 0 0;">
+          {{ analysis.confidence_percent }}% confidence
+        </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Confidence bar #}
+    {% if analysis.confidence %}
+    <div class="conf-track">
+      <div class="conf-fill" id="confBar" style="width:0%"></div>
+    </div>
+    {% endif %}
+
+    {# All probabilities — show only top 2 #}
+    {% if analysis.all_probabilities %}
+    <div style="margin-top:20px;">
+    <p style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;">
+        Top probabilities
+    </p>
+    {% with probs=analysis.all_probabilities.items|dictsortreversed:"1" %}
+    {% for label, prob in probs %}
+    {% if forloop.counter <= 2 %}
+    <div class="prob-row">
+        <span class="prob-label">{{ label|title }}</span>
+        <div class="prob-bar-track">
+        <div class="prob-bar-fill {% if label == analysis.cry_type %}top{% endif %}"
+            style="width:0%"
+            data-width="{{ prob|floatformat:0 }}"></div>
+        </div>
+        <span class="prob-pct">{{ prob|floatformat:0 }}%</span>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% endwith %}
+    </div>
+    {% endif %}
+
+  </div>
+
+  {# ── Guidance card ── #}
+  {% if analysis.guidance %}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:18px;padding:24px;margin-bottom:16px;">
+    <p style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin:0 0 14px;">
+      What to do
+    </p>
+    {# Hidden element holds raw guidance text — JS reads innerText and parses as markdown #}
+    <div id="guidanceRaw" style="display:none;">{{ analysis.guidance }}</div>
+    <div class="guidance-body" id="guidanceBody"></div>
+  </div>
+  {% endif %}
+
+  {# ── Actions ── #}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;">
+    <a href="{% url 'predictions:cry_analyser' %}"
+       style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:var(--surface);border:1.5px solid var(--rose-border);border-radius:12px;color:var(--ink-2);font-size:13px;font-weight:600;text-decoration:none;transition:background .13s;"
+       onmouseover="this.style.background='var(--rose-pale)'"
+       onmouseout="this.style.background='var(--surface)'">
+      🎙️ Analyse Again
+    </a>
+    <a href="{% url 'chat:chat_home' %}"
+       style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));border-radius:12px;color:white;font-size:13px;font-weight:600;text-decoration:none;box-shadow:0 3px 12px rgba(190,18,60,.25);">
+      💬 Ask AI More
+    </a>
+  </div>
+
+  {# ── Past analyses link ── #}
+  <div style="text-align:center;">
+    <a href="{% url 'predictions:cry_history' %}"
+       style="font-size:12px;color:var(--ink-3);text-decoration:none;font-weight:500;">
+      View cry history →
+    </a>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  marked.setOptions({ breaks: true, gfm: true });
+
+  // Read raw guidance from hidden element (avoids escapejs double-encoding)
+  const guidanceRaw  = document.getElementById('guidanceRaw');
+  const guidanceBody = document.getElementById('guidanceBody');
+  if (guidanceRaw && guidanceBody) {
+    const raw = guidanceRaw.innerText || guidanceRaw.textContent;
+    guidanceBody.innerHTML = marked.parse(raw);
+  }
+
+  // Animate confidence bar
+  {% if analysis.confidence %}
+  setTimeout(() => {
+    document.getElementById('confBar').style.width = '{{ analysis.confidence_percent }}%';
+  }, 300);
+  {% endif %}
+
+  // Animate probability bars
+  document.querySelectorAll('.prob-bar-fill').forEach(bar => {
+    const w = bar.getAttribute('data-width');
+    setTimeout(() => { bar.style.width = w + '%'; }, 400);
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "mothers/base.html" %}
+{% block title %}Registration Submitted – MamaCare{% endblock %}
+
+{% block content %}
+<div style="max-width:480px;margin:60px auto;text-align:center;padding:0 16px;">
+  <div style="font-size:60px;margin-bottom:16px;">🎉</div>
+  <h1 style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--rose-deep);margin:0 0 10px;">
+    Request Submitted!
+  </h1>
+  <p style="font-size:13.5px;color:var(--ink-2);line-height:1.7;margin:0 0 24px;">
+    Thank you for registering with MamaCare. Our team will review your application and contact you at your email within 2 business days.
+  </p>
+  <a href="{% url 'physicians:physician_list' %}"
+     style="display:inline-block;padding:12px 28px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;font-size:13px;font-weight:600;border-radius:10px;text-decoration:none;">
+    Browse Doctors
+  </a>
+</div>
+{% endblock %}

@@ -1,0 +1,250 @@
+{% extends "mothers/base.html" %}
+{% block title %}Almost There – MamaCare 🌸{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-start justify-center pt-12 pb-16 px-5 sm:px-6 lg:px-8">
+
+  <div class="w-full max-w-3xl">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-rose-300 to-rose-200 text-white text-4xl shadow-bloom mb-5 mx-auto">
+        📍
+      </div>
+      <h1 class="text-3xl font-bold text-rose-800 mb-2">Where are you?</h1>
+      <p class="text-rose-600">Helps us find nearby resources for you</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-10 max-w-md mx-auto">
+      <div class="flex justify-between items-center mb-3">
+        {% for i in "123" %}
+        <div class="flex flex-col items-center flex-1">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all duration-300
+                      {% if forloop.counter <= step %}bg-rose-600 text-white ring-4 ring-rose-200{% else %}bg-rose-100 text-rose-400{% endif %}">
+            {{ forloop.counter }}
+          </div>
+          <div class="h-1 bg-rose-100 flex-1 w-full mt-2 rounded {% if forloop.counter < 3 %}mr-1{% endif %} {% if forloop.counter <= step %}bg-rose-400{% endif %}"></div>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="text-center text-sm text-rose-500 font-medium">Step {{ step }} of 3 • Final Step</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white rounded-3xl shadow-bloom p-6 sm:p-10 border border-rose-50">
+
+      <h2 class="text-2xl sm:text-3xl font-bold text-rose-800 mb-2 text-center">Almost there! 🌺</h2>
+      <p class="text-rose-500 mb-6 text-center">Optional — skip if you prefer</p>
+
+      <!-- Summary Card -->
+      <div class="bg-rose-50 rounded-2xl p-6 mb-8 border border-rose-100 text-center md:text-left">
+        <p class="text-xs font-semibold text-rose-600 uppercase tracking-wide mb-3">You're creating an account for</p>
+        <div class="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+          <div class="w-14 h-14 rounded-full bg-gradient-to-br from-rose-500 to-rose-400 flex items-center justify-center text-3xl text-white shadow-md flex-shrink-0">
+            👩
+          </div>
+          <div>
+            <p class="font-semibold text-rose-800 text-lg">{{ request.session.reg_step1.full_name|default:"—" }}</p>
+            <p class="text-rose-500">{{ request.session.reg_step1.phone_number|default:"—" }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auto-detect button -->
+      <div class="mb-6 text-center">
+        <button type="button" id="detectBtn" onclick="detectLocation()"
+                class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl border-2 border-rose-300 bg-rose-50 text-rose-700 font-semibold text-sm hover:bg-rose-100 transition-all duration-200">
+          <span id="detectIcon">📍</span>
+          <span id="detectText">Auto-detect my location</span>
+        </button>
+        <p id="detectStatus" class="text-xs text-rose-400 mt-2 hidden"></p>
+      </div>
+
+      <form method="post" novalidate class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% csrf_token %}
+
+        <!-- Country -->
+        <div class="md:col-span-1">
+          <label class="block text-sm font-semibold text-rose-700 mb-2">Country</label>
+          <select id="countrySelect" name="country" onchange="loadCities(this.value)"
+                  class="w-full px-5 py-4 rounded-2xl border-2 border-rose-100 bg-rose-50/30 text-gray-800 focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100/40 transition-all duration-200 appearance-none">
+            <option value="">— Select country —</option>
+            {% for c in countries %}
+            <option value="{{ c }}" {% if form.country.value == c or c == "Kenya" and not form.country.value %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- City -->
+        <div class="md:col-span-1">
+          <label class="block text-sm font-semibold text-rose-700 mb-2">City / Town</label>
+
+          <!-- City dropdown (populated via API) -->
+          <select id="citySelect" name="city_select"
+                  class="w-full px-5 py-4 rounded-2xl border-2 border-rose-100 bg-rose-50/30 text-gray-800 focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100/40 transition-all duration-200 appearance-none">
+            <option value="">— Select city —</option>
+          </select>
+
+          <!-- Hidden field that actually submits -->
+          <input type="hidden" id="cityHidden" name="city" value="{{ form.city.value|default:'' }}">
+
+          <!-- Manual fallback -->
+          <p class="text-xs text-rose-400 mt-2">Or type manually:</p>
+          <input type="text" id="cityManual" placeholder="e.g. Nairobi"
+                 oninput="document.getElementById('cityHidden').value=this.value"
+                 class="w-full mt-1 px-5 py-3 rounded-2xl border-2 border-rose-100 bg-rose-50/30 placeholder-rose-300 text-gray-800 focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100/40 transition-all duration-200" />
+        </div>
+
+        <!-- Buttons - span both columns -->
+        <div class="md:col-span-2 mt-6 flex flex-col sm:flex-row gap-4">
+          <button type="submit"
+                  class="flex-1 py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-400 text-white font-semibold text-lg shadow-bloom hover:shadow-bloom-lg hover:brightness-105 active:scale-[0.98] transition-all duration-200">
+            🌸 Create My Account
+          </button>
+
+          <button type="submit" name="skip" value="1"
+                  class="flex-1 py-4 rounded-2xl bg-white border-2 border-rose-200 text-rose-600 font-semibold text-lg hover:bg-rose-50 transition-all duration-200">
+            Skip location & finish
+          </button>
+        </div>
+
+      </form>
+
+      <button onclick="history.back()" class="block w-full text-center text-rose-400 mt-8 text-sm hover:text-rose-600">
+        ← Go back
+      </button>
+
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── City cascade via countriesnow.space ──────────────────────────────────────
+function loadCities(country) {
+  const sel = document.getElementById('citySelect');
+  const hidden = document.getElementById('cityHidden');
+  if (!country) { sel.innerHTML = '<option value="">— Select city —</option>'; return; }
+
+  sel.innerHTML = '<option value="">Loading…</option>';
+  fetch('https://countriesnow.space/api/v0.1/countries/cities', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({country: country})
+  })
+  .then(r => r.json())
+  .then(data => {
+    sel.innerHTML = '<option value="">— Select city —</option>';
+    if (!data.error && data.data && data.data.length) {
+      data.data.forEach(city => {
+        const opt = document.createElement('option');
+        opt.value = city; opt.textContent = city;
+        sel.appendChild(opt);
+      });
+      // Restore previously selected city if available
+      const prev = hidden.value;
+      if (prev) {
+        const match = [...sel.options].find(o => o.value === prev);
+        if (match) { match.selected = true; }
+      }
+    } else {
+      sel.innerHTML = '<option value="">No cities found — type below</option>';
+    }
+  })
+  .catch(() => { sel.innerHTML = '<option value="">Could not load — type below</option>'; });
+}
+
+// Sync city select → hidden field
+document.getElementById('citySelect').addEventListener('change', function() {
+  if (this.value) {
+    document.getElementById('cityHidden').value = this.value;
+    document.getElementById('cityManual').value = this.value;
+  }
+});
+
+// ── GPS auto-detect ──────────────────────────────────────────────────────────
+function detectLocation() {
+  const btn = document.getElementById('detectBtn');
+  const txt = document.getElementById('detectText');
+  const ico = document.getElementById('detectIcon');
+  const status = document.getElementById('detectStatus');
+
+  if (!navigator.geolocation) {
+    status.textContent = 'Geolocation not supported by your browser.';
+    status.classList.remove('hidden');
+    return;
+  }
+
+  txt.textContent = 'Detecting…';
+  ico.textContent = '⏳';
+  btn.disabled = true;
+  status.classList.add('hidden');
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+      .then(r => r.json())
+      .then(data => {
+        const country = data.countryName || '';
+        const city = data.city || data.locality || data.principalSubdivision || '';
+
+        // Set country dropdown
+        const csel = document.getElementById('countrySelect');
+        let copt = [...csel.options].find(o => o.value.toLowerCase() === country.toLowerCase());
+        if (!copt && country) {
+          // Exact match failed — try partial match
+          copt = [...csel.options].find(o =>
+            o.value.toLowerCase().includes(country.toLowerCase()) ||
+            country.toLowerCase().includes(o.value.toLowerCase())
+          );
+        }
+        if (!copt && country) {
+          // Still not found — insert a new option so it always submits
+          copt = new Option(country, country);
+          csel.insertBefore(copt, csel.options[1]);
+        }
+        if (copt) {
+          copt.selected = true;
+          document.getElementById('cityHidden').value = city;
+          document.getElementById('cityManual').value = city;
+          loadCities(copt.value);
+          // After cities load (~1.5s), try to auto-select the detected city
+          setTimeout(() => {
+            const citysel = document.getElementById('citySelect');
+            const cmatch = [...citysel.options].find(o => o.value.toLowerCase() === city.toLowerCase());
+            if (cmatch) { cmatch.selected = true; document.getElementById('cityHidden').value = cmatch.value; }
+          }, 1800);
+        }
+
+        ico.textContent = '✅';
+        txt.textContent = `${city ? city + ', ' : ''}${country}`;
+        btn.disabled = false;
+      })
+      .catch(() => {
+        status.textContent = 'Could not fetch location details. Please select manually.';
+        status.classList.remove('hidden');
+        ico.textContent = '📍';
+        txt.textContent = 'Auto-detect my location';
+        btn.disabled = false;
+      });
+    },
+    err => {
+      status.textContent = err.code === 1 ? 'Location access denied. Please select manually.' : 'Could not detect location.';
+      status.classList.remove('hidden');
+      ico.textContent = '📍';
+      txt.textContent = 'Auto-detect my location';
+      btn.disabled = false;
+    }
+  );
+}
+
+// Load cities for the default selected country on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('countrySelect');
+  if (sel.value) loadCities(sel.value);
+});
+</script>
+{% endblock %}

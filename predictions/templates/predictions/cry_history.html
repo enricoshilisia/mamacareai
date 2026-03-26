@@ -1,0 +1,79 @@
+{% extends "mothers/base.html" %}
+{% block title %}Cry History – MamaCare{% endblock %}
+{% block topbar_title %}Cry History{% endblock %}
+
+{% block content %}
+<div style="max-width:620px;margin:0 auto;">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--rose-deep);margin:0;">
+      Cry History
+    </h1>
+    <a href="{% url 'predictions:cry_analyser' %}"
+       style="font-size:12px;font-weight:600;color:var(--rose-mid);background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:8px;padding:7px 14px;text-decoration:none;">
+      + New Analysis
+    </a>
+  </div>
+
+  {% if analyses %}
+  <div style="display:flex;flex-direction:column;gap:10px;">
+    {% for a in analyses %}
+    <a href="{% url 'predictions:cry_result' a.pk %}"
+       style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--rose-border);border-radius:14px;padding:14px 16px;text-decoration:none;transition:box-shadow .15s;"
+       onmouseover="this.style.boxShadow='0 4px 20px rgba(190,18,60,0.1)'"
+       onmouseout="this.style.boxShadow='none'">
+
+      <div style="font-size:32px;flex-shrink:0;line-height:1;">
+        {% if a.cry_type == 'hungry' %}🍼
+        {% elif a.cry_type == 'tired' %}😴
+        {% elif a.cry_type == 'burping' %}💨
+        {% elif a.cry_type == 'discomfort' %}😣
+        {% elif a.cry_type == 'lonely' %}🤗
+        {% elif a.cry_type == 'scared' %}😨
+        {% elif a.cry_type == 'belly_pain' %}😢
+        {% elif a.cry_type == 'cold_hot' %}🌡️
+        {% else %}❓{% endif %}
+      </div>
+
+      <div style="flex:1;min-width:0;">
+        <p style="font-size:14px;font-weight:600;color:var(--ink);margin:0;">
+          {{ a.get_cry_type_display }}
+          {% if a.is_serious %}
+          <span style="font-size:10px;background:#fff5f5;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:2px 6px;margin-left:6px;font-weight:600;">Serious</span>
+          {% endif %}
+        </p>
+        <p style="font-size:12px;color:var(--ink-3);margin:3px 0 0;">
+          {% if a.child %}{{ a.child.name }} · {% endif %}{{ a.created_at|date:"d M Y, H:i" }}
+        </p>
+        {% if a.confidence %}
+        <p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">
+          {{ a.confidence_percent }}% confidence
+        </p>
+        {% endif %}
+      </div>
+
+      <svg width="16" height="16" fill="none" stroke="var(--ink-3)" viewBox="0 0 24 24" style="flex-shrink:0;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:48px 24px;text-align:center;">
+    <div style="font-size:48px;margin-bottom:12px;">🎙️</div>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin:0 0 8px;">
+      No analyses yet
+    </h3>
+    <p style="font-size:13px;color:var(--ink-3);margin:0 0 20px;">
+      Record or upload your baby's cry to get started
+    </p>
+    <a href="{% url 'predictions:cry_analyser' %}"
+       style="display:inline-block;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;font-size:13px;font-weight:600;padding:11px 28px;border-radius:10px;text-decoration:none;">
+      Analyse a Cry
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

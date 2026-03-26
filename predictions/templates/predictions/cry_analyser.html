@@ -1,0 +1,421 @@
+{% extends "mothers/base.html" %}
+{% block title %}Cry Analyser – MamaCare{% endblock %}
+{% block topbar_title %}Cry Analyser{% endblock %}
+
+{% block extra_head %}
+<style>
+  .upload-zone {
+    border: 2px dashed var(--rose-border);
+    border-radius: 18px;
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  .upload-zone:hover,
+  .upload-zone.dragover {
+    border-color: var(--rose);
+    background: var(--rose-pale);
+  }
+  .upload-zone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .upload-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--rose-pale); border: 1px solid var(--rose-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 16px;
+    transition: background .2s;
+  }
+  .upload-zone:hover .upload-icon { background: white; }
+
+  .record-btn {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(190,18,60,.3);
+    transition: transform .15s, box-shadow .15s;
+    margin: 0 auto;
+    position: relative;
+  }
+  .record-btn:hover { transform: scale(1.05); box-shadow: 0 6px 26px rgba(190,18,60,.4); }
+  .record-btn:active { transform: scale(0.96); }
+  .record-btn svg { width: 28px; height: 28px; stroke: white; stroke-width: 2; }
+  .record-btn.recording {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    animation: pulse-ring 1.5s ease infinite;
+  }
+  @keyframes pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+    70%  { box-shadow: 0 0 0 16px rgba(239,68,68,0); }
+    100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+  }
+
+  .child-chip {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; border-radius: 12px;
+    border: 2px solid var(--rose-border);
+    cursor: pointer; transition: border-color .15s, background .15s;
+    background: var(--surface);
+  }
+  .child-chip:hover  { border-color: var(--rose-blush); background: var(--rose-pale); }
+  .child-chip.selected { border-color: var(--rose); background: var(--rose-pale); }
+  .child-chip input  { display: none; }
+
+  .submit-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: white; font-size: 14px; font-weight: 600;
+    border: none; border-radius: 12px; cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    box-shadow: 0 4px 16px rgba(190,18,60,.28);
+    transition: opacity .15s, transform .12s;
+  }
+  .submit-btn:hover    { opacity: .92; }
+  .submit-btn:active   { transform: scale(0.98); }
+  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .how-step {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 0; border-bottom: 1px solid var(--rose-border);
+  }
+  .how-step:last-child { border-bottom: none; }
+  .how-num {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    background: var(--rose-pale); border: 1px solid var(--rose-border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--rose-mid);
+  }
+
+  #audio-preview-wrap { display: none; margin-top: 16px; }
+  #audio-preview { width: 100%; border-radius: 8px; }
+
+  .processing-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(253,248,249,0.92);
+    backdrop-filter: blur(8px);
+    z-index: 500;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+  }
+  .processing-overlay.visible { display: flex; }
+  .processing-spinner {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 3px solid var(--rose-border);
+    border-top-color: var(--rose);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="processing-overlay" id="processingOverlay">
+  <div class="processing-spinner"></div>
+  <div style="text-align:center;">
+    <p style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--rose-deep);margin:0 0 4px;">
+      Analysing cry...
+    </p>
+    <p style="font-size:13px;color:var(--ink-3);margin:0;">This takes a few seconds</p>
+  </div>
+</div>
+
+<div style="max-width:560px;margin:0 auto;">
+
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--rose-deep));font-size:26px;margin-bottom:12px;box-shadow:0 6px 20px rgba(190,18,60,.25);">
+      🎙️
+    </div>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--rose-deep);margin:0 0 6px;">
+      Cry Analyser
+    </h1>
+    <p style="font-size:13px;color:var(--ink-3);margin:0;">
+      Upload or record your baby's cry — our AI will tell you what they need
+    </p>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" id="cry-form">
+    {% csrf_token %}
+
+    {% if children.count > 1 %}
+    <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;">
+        Which child?
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        {% for child in children %}
+        <label class="child-chip {% if selected_child.pk == child.pk %}selected{% endif %}" id="chip-{{ child.pk }}">
+          <input type="radio" name="child_id" value="{{ child.pk }}"
+                 {% if selected_child.pk == child.pk %}checked{% endif %}
+                 onchange="selectChip('{{ child.pk }}')">
+          <div style="width:36px;height:36px;border-radius:9px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;
+            background:{% if child.gender == 'M' %}linear-gradient(135deg,#bfdbfe,#60a5fa){% else %}linear-gradient(135deg,#fce7f3,#fb7185){% endif %};">
+            {% if child.photo %}<img src="{{ child.photo.url }}" style="width:100%;height:100%;object-fit:cover;">
+            {% else %}{% if child.gender == 'M' %}👦{% elif child.gender == 'F' %}👧{% else %}👶{% endif %}{% endif %}
+          </div>
+          <div>
+            <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0;">{{ child.name }}</p>
+            <p style="font-size:11px;color:var(--ink-3);margin:0;">{{ child.age_display }}</p>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif selected_child %}
+    <input type="hidden" name="child_id" value="{{ selected_child.pk }}">
+    {% endif %}
+
+    {# ── Upload zone ── #}
+    <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:20px;margin-bottom:16px;">
+      <p style="font-size:12px;font-weight:600;color:var(--ink-2);letter-spacing:.04em;text-transform:uppercase;margin:0 0 12px;">
+        Upload Audio File
+      </p>
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" name="audio_file" id="audioFile"
+               accept=".wav,.mp3,.m4a,.ogg,.webm"
+               onchange="handleFileSelect(this)">
+        <div class="upload-icon" id="uploadIcon">📂</div>
+        <p id="uploadText" style="font-size:14px;font-weight:600;color:var(--ink-2);margin:0 0 4px;">
+          Click to upload audio
+        </p>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">
+          WAV, MP3, M4A, OGG supported
+        </p>
+      </div>
+      <div id="audio-preview-wrap">
+        <audio id="audio-preview" controls></audio>
+      </div>
+    </div>
+
+    {# ── OR divider ── #}
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+      <div style="flex:1;height:1px;background:var(--rose-border);"></div>
+      <span style="font-size:11px;color:var(--ink-3);font-weight:500;">OR RECORD LIVE</span>
+      <div style="flex:1;height:1px;background:var(--rose-border);"></div>
+    </div>
+
+    {# ── Live recording ── #}
+    <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:24px;margin-bottom:20px;text-align:center;">
+      <button type="button" class="record-btn" id="recordBtn" onclick="toggleRecording()">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+        </svg>
+      </button>
+      <p id="recordStatus" style="font-size:13px;color:var(--ink-3);margin:14px 0 0;">
+        Tap to start recording
+      </p>
+      <p id="recordTimer" style="font-size:24px;font-family:'Cormorant Garamond',serif;color:var(--rose-deep);margin:4px 0 0;display:none;">
+        0:00
+      </p>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn" disabled>
+      Analyse Cry 🔍
+    </button>
+
+    <p style="font-size:11px;color:var(--ink-3);text-align:center;margin-top:10px;">
+      Audio is processed securely and not stored longer than needed.
+    </p>
+
+  </form>
+
+  {# ── How it works ── #}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:20px;margin-top:24px;">
+    <p style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;color:var(--rose-deep);margin:0 0 14px;">
+      How it works
+    </p>
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <div>
+        <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0 0 2px;">Upload or record</p>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">Upload an audio file or record your baby's cry live</p>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <div>
+        <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0 0 2px;">AI analyses the cry</p>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">Our CNN model classifies the cry across 8 categories</p>
+      </div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">3</div>
+      <div>
+        <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0 0 2px;">Get guidance</p>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">Receive clear, actionable steps tailored to your baby</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let mediaRecorder = null;
+  let audioChunks   = [];
+  let timerInterval = null;
+  let seconds       = 0;
+  let isRecording   = false;
+
+  /* ── WAV encoder ── */
+  function encodeWAV(audioBuffer) {
+    const numChannels = 1;
+    const sampleRate  = audioBuffer.sampleRate;
+    const samples     = audioBuffer.getChannelData(0);
+    const buffer      = new ArrayBuffer(44 + samples.length * 2);
+    const view        = new DataView(buffer);
+
+    function writeStr(offset, str) {
+      for (let i = 0; i < str.length; i++)
+        view.setUint8(offset + i, str.charCodeAt(i));
+    }
+    function write16(offset, val) { view.setInt16(offset, val, true); }
+    function write32(offset, val) { view.setUint32(offset, val, true); }
+
+    writeStr(0,  'RIFF');
+    write32(4,   36 + samples.length * 2);
+    writeStr(8,  'WAVE');
+    writeStr(12, 'fmt ');
+    write32(16,  16);
+    write16(20,  1);
+    write16(22,  numChannels);
+    write32(24,  sampleRate);
+    write32(28,  sampleRate * 2);
+    write16(32,  2);
+    write16(34,  16);
+    writeStr(36, 'data');
+    write32(40,  samples.length * 2);
+
+    let offset = 44;
+    for (let i = 0; i < samples.length; i++) {
+      const s = Math.max(-1, Math.min(1, samples[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      offset += 2;
+    }
+    return new Blob([buffer], { type: 'audio/wav' });
+  }
+
+  /* ── File upload handler ── */
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (!file) return;
+    document.getElementById('uploadText').textContent = file.name;
+    document.getElementById('uploadIcon').textContent = '✅';
+    const url     = URL.createObjectURL(file);
+    const preview = document.getElementById('audio-preview');
+    const wrap    = document.getElementById('audio-preview-wrap');
+    preview.src   = url;
+    wrap.style.display = 'block';
+    document.getElementById('submitBtn').disabled = false;
+  }
+
+  /* ── Drag and drop ── */
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      const input = document.getElementById('audioFile');
+      const dt    = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      handleFileSelect(input);
+    }
+  });
+
+  /* ── Child chip selector ── */
+  function selectChip(pk) {
+    document.querySelectorAll('.child-chip').forEach(c => c.classList.remove('selected'));
+    document.getElementById('chip-' + pk).classList.add('selected');
+  }
+
+  /* ── Live recording with proper WAV encoding ── */
+  async function toggleRecording() {
+    if (!isRecording) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks   = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+
+        mediaRecorder.onstop = async () => {
+          try {
+            // Decode the recorded audio
+            const blob      = new Blob(audioChunks, { type: 'audio/webm' });
+            const arrayBuf  = await blob.arrayBuffer();
+            const audioCtx  = new AudioContext();
+            const audioBuf  = await audioCtx.decodeAudioData(arrayBuf);
+
+            // Re-encode as proper WAV PCM
+            const wavBlob   = encodeWAV(audioBuf);
+            const file      = new File([wavBlob], 'recording.wav', { type: 'audio/wav' });
+
+            // Inject into file input
+            const input = document.getElementById('audioFile');
+            const dt    = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            handleFileSelect(input);
+          } catch (err) {
+            console.error('WAV encoding failed:', err);
+            // Fallback — send raw blob anyway
+            const blob  = new Blob(audioChunks, { type: 'audio/webm' });
+            const file  = new File([blob], 'recording.webm', { type: 'audio/webm' });
+            const input = document.getElementById('audioFile');
+            const dt    = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            handleFileSelect(input);
+          }
+
+          stream.getTracks().forEach(t => t.stop());
+        };
+
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById('recordBtn').classList.add('recording');
+        document.getElementById('recordStatus').textContent = 'Recording... tap to stop';
+        document.getElementById('recordTimer').style.display = 'block';
+
+        seconds = 0;
+        timerInterval = setInterval(() => {
+          seconds++;
+          const m = Math.floor(seconds / 60);
+          const s = seconds % 60;
+          document.getElementById('recordTimer').textContent =
+            `${m}:${s.toString().padStart(2, '0')}`;
+          if (seconds >= 30) toggleRecording();
+        }, 1000);
+
+      } catch (err) {
+        alert('Microphone access denied. Please allow microphone access or upload a file instead.');
+      }
+
+    } else {
+      mediaRecorder.stop();
+      isRecording = false;
+      clearInterval(timerInterval);
+      document.getElementById('recordBtn').classList.remove('recording');
+      document.getElementById('recordStatus').textContent = 'Recording saved — ready to analyse';
+      document.getElementById('recordTimer').style.display = 'none';
+    }
+  }
+
+  /* ── Show processing overlay on submit ── */
+  document.getElementById('cry-form').addEventListener('submit', function() {
+    const hasFile = document.getElementById('audioFile').files.length > 0;
+    if (hasFile) {
+      document.getElementById('processingOverlay').classList.add('visible');
+    }
+  });
+</script>
+{% endblock %}

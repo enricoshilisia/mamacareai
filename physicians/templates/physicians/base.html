@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}MamaCare – Doctor Portal{% endblock %}</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue:        #3b82f6;
+      --blue-deep:   #1d4ed8;
+      --blue-mid:    #2563eb;
+      --blue-pale:   #eff6ff;
+      --blue-light:  #bfdbfe;
+      --blue-border: #dbeafe;
+      --ink:         #0f172a;
+      --ink-2:       #334155;
+      --ink-3:       #64748b;
+      --surface:     #ffffff;
+      --bg:          #f8faff;
+      --sidebar-w:   252px;
+      --topbar-h:    60px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    h1,h2,h3,h4,.serif { font-family: 'Cormorant Garamond', serif; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--blue-light); border-radius: 99px; }
+
+    @media (min-width: 1024px) {
+      .mobile-topbar, .bottom-nav { display: none !important; }
+
+      .topbar {
+        position: fixed;
+        top: 0; left: var(--sidebar-w); right: 0;
+        height: var(--topbar-h);
+        background: var(--surface);
+        border-bottom: 1px solid var(--blue-border);
+        display: flex; align-items: center;
+        padding: 0 28px; z-index: 100; gap: 12px;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        width: var(--sidebar-w); height: 100vh;
+        background: var(--surface);
+        border-right: 1px solid var(--blue-border);
+        display: flex; flex-direction: column;
+        z-index: 101; overflow-y: auto;
+      }
+
+      .layout-body {
+        margin-left: var(--sidebar-w);
+        padding-top: var(--topbar-h);
+        min-height: 100vh;
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .topbar, .sidebar { display: none !important; }
+
+      .mobile-topbar {
+        position: sticky; top: 0; height: 56px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--blue-border);
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 0 18px; z-index: 100;
+      }
+
+      .bottom-nav {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: calc(60px + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(255,255,255,0.96);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-top: 1px solid var(--blue-border);
+        display: flex; align-items: center;
+        justify-content: space-around; z-index: 100;
+      }
+
+      .layout-body {
+        padding-bottom: calc(68px + env(safe-area-inset-bottom));
+      }
+    }
+
+    /* Sidebar */
+    .sidebar-brand {
+      padding: 22px 20px 18px;
+      border-bottom: 1px solid var(--blue-border); flex-shrink: 0;
+      background: linear-gradient(135deg, #eff6ff, #dbeafe);
+    }
+    .brand-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px; font-weight: 600;
+      color: var(--blue-deep); letter-spacing: -0.02em; line-height: 1;
+    }
+    .brand-sub {
+      font-size: 10px; color: var(--blue-mid);
+      letter-spacing: 0.09em; text-transform: uppercase; margin-top: 3px;
+    }
+    .sidebar-nav { flex: 1; padding: 10px; overflow-y: auto; }
+
+    .nav-section {
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--blue-light); padding: 14px 10px 4px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 9px;
+      color: var(--ink-2); text-decoration: none;
+      font-size: 13.5px; font-weight: 500;
+      transition: background 0.12s, color 0.12s;
+      margin-bottom: 1px;
+    }
+    .nav-link svg { width: 17px; height: 17px; flex-shrink: 0; stroke-width: 1.8; }
+    .nav-link:hover { background: var(--blue-pale); color: var(--blue-deep); }
+    .nav-link.active { background: var(--blue-pale); color: var(--blue-deep); font-weight: 600; }
+
+    /* Topbar */
+    .topbar-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 19px; font-weight: 500;
+      color: var(--ink); letter-spacing: -0.01em;
+    }
+    .topbar-spacer { flex: 1; }
+
+    /* Avatar & dropdown */
+    .avatar-wrap { position: relative; }
+    .avatar-btn { background: none; border: none; cursor: pointer; padding: 0; display: block; }
+    .avatar-circle {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, #60a5fa, #1d4ed8);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 17px; font-weight: 600; color: white;
+      overflow: hidden; border: 2px solid transparent;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .avatar-circle img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-btn:hover .avatar-circle,
+    .avatar-btn.open .avatar-circle {
+      border-color: var(--blue-light);
+      box-shadow: 0 0 0 3px var(--blue-pale);
+    }
+    .avatar-dropdown {
+      position: absolute;
+      top: calc(100% + 10px); right: 0; width: 224px;
+      background: var(--surface);
+      border: 1px solid var(--blue-border); border-radius: 14px;
+      box-shadow: 0 8px 40px -4px rgba(29,78,216,0.13), 0 2px 8px rgba(0,0,0,0.05);
+      overflow: hidden; opacity: 0;
+      transform: translateY(-8px) scale(0.97);
+      pointer-events: none;
+      transition: opacity 0.17s ease, transform 0.17s ease;
+      z-index: 300;
+    }
+    .avatar-dropdown.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+    .dd-header { padding: 14px 16px 12px; border-bottom: 1px solid var(--blue-border); background: var(--blue-pale); }
+    .dd-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--blue-mid); background: var(--blue-light); border-radius: 99px; padding: 2px 8px; margin-bottom: 6px; }
+    .dd-name { font-family: 'Cormorant Garamond', serif; font-size: 17px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+    .dd-phone { font-size: 11.5px; color: var(--ink-3); margin-top: 2px; }
+    .dd-links { padding: 6px; }
+    .dd-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 10px; border-radius: 8px;
+      color: var(--ink-2); text-decoration: none;
+      font-size: 13px; font-weight: 500; transition: background 0.11s;
+    }
+    .dd-link svg { width: 14px; height: 14px; stroke-width: 1.9; flex-shrink: 0; }
+    .dd-link:hover { background: var(--blue-pale); }
+    .dd-divider { height: 1px; background: var(--blue-border); margin: 4px 6px; }
+    .dd-link.danger { color: #dc2626; }
+    .dd-link.danger:hover { background: #fff5f5; }
+
+    /* Mobile */
+    .mobile-brand {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px; font-weight: 600;
+      color: var(--blue-deep); letter-spacing: -0.02em;
+    }
+    .mobile-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--blue-mid); background: var(--blue-pale);
+      border: 1px solid var(--blue-border); border-radius: 99px;
+      padding: 1px 7px; margin-left: 6px; vertical-align: middle;
+    }
+
+    /* Bottom nav */
+    .bnav-item {
+      display: flex; flex-direction: column;
+      align-items: center; gap: 3px;
+      padding: 5px 12px; border-radius: 10px;
+      text-decoration: none; color: var(--ink-3);
+      font-size: 10px; font-weight: 500;
+      transition: color 0.12s; position: relative; flex-shrink: 0;
+    }
+    .bnav-item svg { width: 22px; height: 22px; stroke-width: 1.75; }
+    .bnav-item.active { color: var(--blue-mid); }
+    .bnav-item.active svg { stroke: var(--blue-mid); }
+    .bnav-item.active::before {
+      content: ''; position: absolute; top: 0;
+      width: 18px; height: 3px;
+      border-radius: 0 0 3px 3px; background: var(--blue-mid);
+    }
+
+    .page-inner { padding: 30px 34px; max-width: 980px; }
+    @media (max-width: 1023px) { .page-inner { padding: 16px 16px 8px; } }
+
+    /* Toasts */
+    .toast-stack {
+      position: fixed; top: 70px; left: 50%;
+      transform: translateX(-50%); z-index: 999;
+      display: flex; flex-direction: column; gap: 8px;
+      width: min(400px, calc(100vw - 32px)); pointer-events: none;
+    }
+    @media (max-width: 1023px) { .toast-stack { top: 62px; } }
+    .toast {
+      background: white; border-radius: 12px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.05);
+      border-left: 3px solid var(--blue-mid); pointer-events: auto;
+      animation: toastIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .toast.error { border-left-color: #ef4444; }
+    .toast-msg { font-size: 13px; font-weight: 500; color: var(--ink); flex: 1; line-height: 1.4; }
+    .toast-x { background: none; border: none; cursor: pointer; color: var(--ink-3); font-size: 14px; padding: 2px; line-height: 1; transition: color 0.1s; }
+    .toast-x:hover { color: var(--ink); }
+    @keyframes toastIn {
+      from { opacity:0; transform:translateY(-10px) scale(0.96); }
+      to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+    @keyframes toastOut {
+      from { opacity:1; transform:translateY(0) scale(1); }
+      to   { opacity:0; transform:translateY(-6px) scale(0.96); }
+    }
+
+    /* ── Page transitions ── */
+    @keyframes pageIn {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .layout-body { animation: pageIn 0.24s cubic-bezier(0.22,1,0.36,1) both; }
+    body.page-out .layout-body {
+      animation: none !important;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: opacity 0.14s ease, transform 0.14s ease;
+      pointer-events: none;
+    }
+    #pg-bar {
+      position: fixed; top: 0; left: 0; right: 0; height: 2px;
+      z-index: 9999; background: linear-gradient(90deg, var(--blue), var(--blue-deep));
+      transform-origin: left; transform: scaleX(0);
+      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1), opacity 0.3s;
+      pointer-events: none;
+    }
+    #pg-bar.go { transform: scaleX(0.75); }
+    #pg-bar.done { transform: scaleX(1); opacity: 0; transition: transform 0.18s ease, opacity 0.3s ease 0.08s; }
+  </style>
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+<div id="pg-bar"></div>
+
+{% if messages %}
+<div class="toast-stack">
+  {% for message in messages %}
+  <div class="toast {% if 'error' in message.tags %}error{% endif %}">
+    <span style="font-size:18px;flex-shrink:0;">{% if 'error' in message.tags %}⚠️{% else %}🩺{% endif %}</span>
+    <p class="toast-msg">{{ message }}</p>
+    <button class="toast-x" onclick="killToast(this.parentElement)">✕</button>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if user.is_authenticated %}
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-name">MamaCare</div>
+    <div class="brand-sub">🩺 Doctor Portal</div>
+  </div>
+
+  <nav class="sidebar-nav">
+
+    <a href="{% url 'physicians:physician_home' %}"
+       class="nav-link {% if request.resolver_match.url_name == 'physician_home' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      Dashboard
+    </a>
+
+    <div class="nav-section">My Practice</div>
+
+    {% if user.physician_profile %}
+    <a href="{% url 'physicians:physician_detail' user.physician_profile.pk %}"
+       class="nav-link {% if request.resolver_match.url_name == 'physician_detail' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      My Profile
+    </a>
+    {% endif %}
+
+    <div class="nav-section">Consultations</div>
+
+    <a href="{% url 'consultations:inbox' %}"
+       class="nav-link {% if request.resolver_match.namespace == 'consultations' %}active{% endif %}"
+       style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:10px;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:17px;height:17px;flex-shrink:0;stroke-width:1.8;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Consultations
+      </span>
+      <span id="pendingBadge" style="display:none;font-size:10px;font-weight:700;background:var(--blue-mid);color:white;border-radius:99px;padding:1px 7px;min-width:18px;text-align:center;line-height:1.6;"></span>
+    </a>
+
+    <div class="nav-section">Directory</div>
+
+    <a href="{% url 'physicians:physician_list' %}"
+       class="nav-link {% if request.resolver_match.url_name == 'physician_list' %}active{% endif %}">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+      </svg>
+      All Doctors
+    </a>
+
+  </nav>
+</aside>
+
+<header class="topbar">
+  <span class="topbar-title">{% block topbar_title %}Doctor Portal{% endblock %}</span>
+  <div class="topbar-spacer"></div>
+  {% block topbar_actions %}{% endblock %}
+
+  <div class="avatar-wrap">
+    <button class="avatar-btn" id="desktopAvatarBtn" aria-label="Account">
+      <div class="avatar-circle">
+        {% if user.profile_photo %}<img src="{{ user.profile_photo.url }}" alt="">
+        {% else %}{{ user.first_name|slice:":1"|upper }}{% endif %}
+      </div>
+    </button>
+    <div class="avatar-dropdown" id="desktopDropdown">
+      <div class="dd-header">
+        <div class="dd-badge">Doctor</div>
+        <div class="dd-name">{{ user.full_name }}</div>
+        <div class="dd-phone">{{ user.phone_number }}</div>
+      </div>
+      <div class="dd-links">
+        {% if user.physician_profile %}
+        <a href="{% url 'physicians:physician_detail' user.physician_profile.pk %}" class="dd-link">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          My Profile
+        </a>
+        {% endif %}
+        <div class="dd-divider"></div>
+        <a href="{% url 'mothers:logout' %}" class="dd-link danger">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          Sign Out
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<header class="mobile-topbar">
+  <span class="mobile-brand">MamaCare <span class="mobile-badge">Doctor</span></span>
+  <div class="avatar-wrap">
+    <button class="avatar-btn" id="mobileAvatarBtn" aria-label="Account">
+      <div class="avatar-circle" style="width:34px;height:34px;font-size:15px;">
+        {% if user.profile_photo %}<img src="{{ user.profile_photo.url }}" alt="">
+        {% else %}{{ user.first_name|slice:":1"|upper }}{% endif %}
+      </div>
+    </button>
+    <div class="avatar-dropdown" id="mobileDropdown">
+      <div class="dd-header">
+        <div class="dd-badge">Doctor</div>
+        <div class="dd-name">{{ user.full_name }}</div>
+        <div class="dd-phone">{{ user.phone_number }}</div>
+      </div>
+      <div class="dd-links">
+        {% if user.physician_profile %}
+        <a href="{% url 'physicians:physician_detail' user.physician_profile.pk %}" class="dd-link">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          My Profile
+        </a>
+        {% endif %}
+        <div class="dd-divider"></div>
+        <a href="{% url 'mothers:logout' %}" class="dd-link danger">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          Sign Out
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+
+{% endif %}
+
+<div class="layout-body">
+  <div class="page-inner">
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+{% if user.is_authenticated %}
+<nav class="bottom-nav">
+
+  <a href="{% url 'physicians:physician_home' %}"
+     class="bnav-item {% if request.resolver_match.url_name == 'physician_home' %}active{% endif %}">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+    </svg>
+    Home
+  </a>
+
+  <a href="{% url 'consultations:inbox' %}"
+     class="bnav-item {% if request.resolver_match.namespace == 'consultations' %}active{% endif %}"
+     style="position:relative;">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+    </svg>
+    <span id="pendingDot" style="display:none;position:absolute;top:3px;right:10px;width:8px;height:8px;background:#ef4444;border-radius:50%;border:2px solid white;"></span>
+    Inbox
+  </a>
+
+  {% if user.physician_profile %}
+  <a href="{% url 'physicians:physician_detail' user.physician_profile.pk %}"
+     class="bnav-item {% if request.resolver_match.url_name == 'physician_detail' %}active{% endif %}">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    Profile
+  </a>
+  {% endif %}
+
+  <a href="{% url 'physicians:physician_list' %}"
+     class="bnav-item {% if request.resolver_match.url_name == 'physician_list' %}active{% endif %}">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+    </svg>
+    Doctors
+  </a>
+
+</nav>
+{% endif %}
+
+<script>
+  function bindDropdown(btnId, dropdownId) {
+    const btn = document.getElementById(btnId);
+    const dd  = document.getElementById(dropdownId);
+    if (!btn || !dd) return;
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const isOpen = dd.classList.contains('open');
+      document.querySelectorAll('.avatar-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('open'));
+      if (!isOpen) { dd.classList.add('open'); btn.classList.add('open'); }
+    });
+  }
+  bindDropdown('desktopAvatarBtn', 'desktopDropdown');
+  bindDropdown('mobileAvatarBtn',  'mobileDropdown');
+  document.addEventListener('click', function() {
+    document.querySelectorAll('.avatar-dropdown').forEach(d => d.classList.remove('open'));
+    document.querySelectorAll('.avatar-btn').forEach(b => b.classList.remove('open'));
+  });
+  document.querySelectorAll('.avatar-dropdown').forEach(d => {
+    d.addEventListener('click', e => e.stopPropagation());
+  });
+  // ── Pending consultation badge ──
+  (function loadPendingBadge() {
+    fetch("{% url 'consultations:pending_count' %}")
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.getElementById('pendingBadge');
+        const dot   = document.getElementById('pendingDot');
+        if (data.pending > 0) {
+          if (badge) { badge.textContent = data.pending; badge.style.display = 'inline-block'; }
+          if (dot)   { dot.style.display = 'block'; }
+        }
+      }).catch(() => {});
+  })();
+
+  // ── Page transition ──
+  const _bar = document.getElementById('pg-bar');
+  document.addEventListener('click', function(e) {
+    const a = e.target.closest('a[href]');
+    if (!a) return;
+    const h = a.getAttribute('href') || '';
+    if (!h || h.startsWith('#') || h.startsWith('javascript') ||
+        a.target === '_blank' || a.hasAttribute('download') ||
+        (h.startsWith('http') && !h.startsWith(location.origin))) return;
+    if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+    _bar.classList.add('go');
+    document.body.classList.add('page-out');
+  }, true);
+  window.addEventListener('pageshow', function() {
+    document.body.classList.remove('page-out');
+    _bar.classList.remove('go');
+    _bar.classList.add('done');
+    setTimeout(() => _bar.classList.remove('done'), 400);
+  });
+
+  function killToast(el) {
+    el.style.animation = 'toastOut 0.22s ease forwards';
+    setTimeout(() => el.remove(), 220);
+  }
+  document.querySelectorAll('.toast').forEach((t, i) => {
+    setTimeout(() => { if (t.isConnected) killToast(t); }, 5000 + i * 300);
+  });
+</script>
+
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

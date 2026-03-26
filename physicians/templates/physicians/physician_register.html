@@ -1,0 +1,72 @@
+{% extends "mothers/base.html" %}
+{% block title %}Join MamaCare as a Doctor{% endblock %}
+{% block topbar_title %}Doctor Registration{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:0 auto;">
+
+  <div style="text-align:center;margin-bottom:28px;">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--rose),var(--rose-deep));font-size:26px;margin-bottom:12px;">
+      🩺
+    </div>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--rose-deep);margin:0 0 6px;">
+      Join MamaCare
+    </h1>
+    <p style="font-size:13px;color:var(--ink-3);margin:0;">
+      Register to be listed as a verified doctor and connect with new mothers
+    </p>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:18px;padding:28px 24px;">
+    <form method="post">
+      {% csrf_token %}
+
+      {% for field in form %}
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.04em;text-transform:uppercase;margin-bottom:5px;">
+          {{ field.label }}
+          {% if field.field.required %}<span style="color:var(--rose);">*</span>{% endif %}
+        </label>
+        {% if field.field.widget.input_type == 'select' %}
+          <select name="{{ field.html_name }}"
+                  style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;"
+                  onfocus="this.style.borderColor='var(--rose-mid)'"
+                  onblur="this.style.borderColor='var(--rose-border)'">
+            {% for val, lbl in field.field.choices %}
+            <option value="{{ val }}" {% if field.value == val %}selected{% endif %}>{{ lbl }}</option>
+            {% endfor %}
+          </select>
+        {% elif field.field.widget.input_type == 'textarea' %}
+          <textarea name="{{ field.html_name }}" rows="3"
+                    placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+                    style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;"
+                    onfocus="this.style.borderColor='var(--rose-mid)'"
+                    onblur="this.style.borderColor='var(--rose-border)'">{{ field.value|default:'' }}</textarea>
+        {% else %}
+          <input type="{{ field.field.widget.input_type }}"
+                 name="{{ field.html_name }}"
+                 value="{{ field.value|default:'' }}"
+                 placeholder="{{ field.field.widget.attrs.placeholder|default:'' }}"
+                 style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;"
+                 onfocus="this.style.borderColor='var(--rose-mid)'"
+                 onblur="this.style.borderColor='var(--rose-border)'">
+        {% endif %}
+        {% if field.errors %}
+        <p style="font-size:11.5px;color:#dc2626;margin-top:4px;">{{ field.errors.0 }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <button type="submit"
+              style="width:100%;padding:13px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;font-size:14px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;margin-top:8px;">
+        Submit Registration Request
+      </button>
+
+      <p style="font-size:11.5px;color:var(--ink-3);text-align:center;margin-top:12px;line-height:1.6;">
+        We review all registrations within 2 business days.<br>
+        You'll be notified at your email once approved.
+      </p>
+    </form>
+  </div>
+</div>
+{% endblock %}

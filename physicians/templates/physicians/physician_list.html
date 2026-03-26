@@ -1,0 +1,216 @@
+{% extends base_template %}
+{% block title %}Find a Doctor – MamaCare{% endblock %}
+{% block topbar_title %}Find a Doctor{% endblock %}
+
+{% block extra_head %}
+<style>
+  .search-bar {
+    display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .search-bar input {
+    flex: 1; min-width: 200px; padding: 10px 14px;
+    border: 1.5px solid var(--rose-border); border-radius: 10px;
+    background: var(--rose-pale); color: var(--ink);
+    font-size: 13.5px; font-family: 'Plus Jakarta Sans', sans-serif;
+    outline: none; transition: border-color .15s;
+  }
+  .search-bar input:focus { border-color: var(--rose-mid); background: var(--surface); }
+  .search-bar button {
+    padding: 10px 18px; background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: white; border: none; border-radius: 10px; cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif;
+    white-space: nowrap;
+  }
+
+  .spec-filters {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+  }
+  .spec-chip {
+    padding: 6px 14px; border-radius: 99px;
+    border: 1.5px solid var(--rose-border);
+    background: var(--surface); color: var(--ink-2);
+    font-size: 12px; font-weight: 500; text-decoration: none;
+    transition: all .13s;
+  }
+  .spec-chip:hover { border-color: var(--rose-blush); background: var(--rose-pale); color: var(--rose-deep); }
+  .spec-chip.active { border-color: var(--rose); background: var(--rose-pale); color: var(--rose-deep); font-weight: 600; }
+
+  .doctor-card {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: var(--surface); border: 1px solid var(--rose-border);
+    border-radius: 14px; padding: 16px; text-decoration: none;
+    transition: box-shadow .15s;
+    margin-bottom: 10px;
+  }
+  .doctor-card:hover { box-shadow: 0 4px 20px rgba(190,18,60,0.1); }
+
+  .doctor-avatar {
+    width: 52px; height: 52px; border-radius: 12px; flex-shrink: 0;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--rose-pale), var(--rose-blush));
+    font-size: 22px;
+  }
+  .doctor-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .stars { color: #f59e0b; font-size: 12px; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-size: 10.5px; font-weight: 600;
+    background: var(--rose-pale); color: var(--rose-mid);
+    border: 1px solid var(--rose-border);
+  }
+
+  .locate-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 10px;
+    background: var(--surface); border: 1.5px solid var(--rose-border);
+    color: var(--ink-2); font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .13s; margin-bottom: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .locate-btn:hover { background: var(--rose-pale); border-color: var(--rose-blush); color: var(--rose-deep); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;margin:0 auto;">
+
+  {# ── Header ── #}
+  <div style="margin-bottom:20px;">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;color:var(--rose-deep);margin:0 0 6px;">
+      Find a Doctor
+    </h1>
+    <p style="font-size:13px;color:var(--ink-3);margin:0;">
+      Verified pediatricians and specialists near you
+    </p>
+  </div>
+
+  {# ── Search ── #}
+  <form method="get" class="search-bar">
+    {% if selected_spec %}
+    <input type="hidden" name="spec" value="{{ selected_spec }}">
+    {% endif %}
+    <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, hospital, or city...">
+    <button type="submit">Search</button>
+  </form>
+
+  {# ── Location button ── #}
+  <button class="locate-btn" onclick="locateMe()">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+    </svg>
+    <span id="locateText">Sort by nearest to me</span>
+  </button>
+
+  {# ── Specialization filters ── #}
+  <div class="spec-filters">
+    <a href="?q={{ search_query }}" class="spec-chip {% if not selected_spec %}active{% endif %}">All</a>
+    {% for val, label in specializations %}
+    <a href="?spec={{ val }}&q={{ search_query }}"
+       class="spec-chip {% if selected_spec == val %}active{% endif %}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {# ── Results ── #}
+  {% if physicians %}
+    <p style="font-size:12px;color:var(--ink-3);margin-bottom:12px;">
+      {{ physicians|length }} doctor{{ physicians|length|pluralize }} found
+    </p>
+
+    {% for doc in physicians %}
+    <a href="{% url 'physicians:physician_detail' doc.pk %}" class="doctor-card">
+      <div class="doctor-avatar">
+        {% if doc.photo %}<img src="{{ doc.photo.url }}" alt="Dr. {{ doc.full_name }}">
+        {% else %}👨‍⚕️{% endif %}
+      </div>
+
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <p style="font-size:14px;font-weight:600;color:var(--ink);margin:0;">Dr. {{ doc.full_name }}</p>
+          <span class="badge">{{ doc.get_specialization_display }}</span>
+        </div>
+        <p style="font-size:12px;color:var(--ink-3);margin:3px 0;">{{ doc.hospital }} · {{ doc.city }}</p>
+
+        <div style="display:flex;align-items:center;gap:10px;margin-top:5px;flex-wrap:wrap;">
+          {% if doc.rating > 0 %}
+          <span class="stars">
+            {% for i in "12345" %}{% if forloop.counter <= doc.rating %}★{% else %}☆{% endif %}{% endfor %}
+          </span>
+          <span style="font-size:11px;color:var(--ink-3);">{{ doc.rating }} ({{ doc.review_count }} review{{ doc.review_count|pluralize }})</span>
+          {% endif %}
+          {% if doc.distance_km is not None %}
+          <span style="font-size:11px;color:var(--rose-mid);font-weight:600;">📍 {{ doc.distance_km }} km away</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <svg width="16" height="16" fill="none" stroke="var(--ink-3)" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:4px;">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+    {% endfor %}
+
+  {% else %}
+    <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:48px 24px;text-align:center;">
+      <div style="font-size:48px;margin-bottom:12px;">🔍</div>
+      <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin:0 0 8px;">
+        No doctors found
+      </h3>
+      <p style="font-size:13px;color:var(--ink-3);margin:0 0 16px;">
+        Try a different search or remove the filter
+      </p>
+      <a href="{% url 'physicians:physician_list' %}"
+         style="font-size:13px;font-weight:600;color:var(--rose-mid);text-decoration:none;">
+        Clear filters →
+      </a>
+    </div>
+  {% endif %}
+
+  {# ── Are you a doctor? ── #}
+  <div style="background:linear-gradient(135deg,var(--rose-pale),#fdf2f8);border:1px solid var(--rose-border);border-radius:14px;padding:18px 20px;margin-top:24px;display:flex;align-items:center;gap:14px;">
+    <span style="font-size:28px;flex-shrink:0;">🩺</span>
+    <div style="flex:1;">
+      <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0 0 3px;">Are you a doctor?</p>
+      <p style="font-size:12px;color:var(--ink-3);margin:0;">Join MamaCare and connect with new mothers who need your expertise.</p>
+    </div>
+    <a href="{% url 'physicians:physician_register' %}"
+       style="font-size:12px;font-weight:600;color:var(--rose-mid);text-decoration:none;background:var(--surface);border:1px solid var(--rose-border);border-radius:8px;padding:7px 12px;white-space:nowrap;">
+      Register →
+    </a>
+  </div>
+
+</div>
+
+<script>
+function locateMe() {
+  const btn  = document.getElementById('locateText');
+  const orig = btn.textContent;
+  btn.textContent = 'Locating...';
+
+  if (!navigator.geolocation) {
+    btn.textContent = 'Location not supported';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const url = new URL(window.location.href);
+      url.searchParams.set('lat', lat);
+      url.searchParams.set('lon', lon);
+      window.location.href = url.toString();
+    },
+    err => {
+      btn.textContent = 'Location denied';
+      setTimeout(() => btn.textContent = orig, 2000);
+    }
+  );
+}
+</script>
+{% endblock %}

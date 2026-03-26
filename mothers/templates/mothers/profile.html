@@ -1,0 +1,150 @@
+{% extends "mothers/base.html" %}
+{% block title %}Profile — MamaCare{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-rose-50 to-white pb-24">
+
+  <!-- Profile Header -->
+  <header class="relative px-6 pt-14 pb-12 bg-white border-b border-rose-100">
+    <div class="max-w-3xl mx-auto text-center">
+      <div class="relative inline-block mb-6">
+        <div class="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-white shadow-xl">
+          {% if mother.profile_photo %}
+            <img src="{{ mother.profile_photo.url }}" alt="{{ mother.full_name }}" class="w-full h-full object-cover">
+          {% else %}
+            <div class="w-full h-full bg-gradient-to-br from-rose-300 to-rose-500 flex items-center justify-center text-6xl text-white">
+              {{ mother.first_name|slice:":1"|upper }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <h1 class="text-3xl font-bold text-gray-900 mb-1">{{ mother.full_name }}</h1>
+      <p class="text-lg text-rose-600 font-medium">{{ mother.phone_number }}</p>
+
+      {% if mother.city or mother.country %}
+        <p class="mt-2 text-sm text-gray-600 flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          {% if mother.city %}{{ mother.city }}{% if mother.country %}, {% endif %}{% endif %}
+          {{ mother.country|default:"Kenya" }}
+        </p>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-5 sm:px-6 py-8 space-y-8">
+
+    <!-- Account Information -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-lg font-semibold text-gray-900">Account Information</h2>
+      </div>
+      <div class="divide-y divide-gray-100">
+        <div class="px-6 py-4 flex justify-between items-center">
+          <span class="text-sm text-gray-600">Full Name</span>
+          <span class="text-sm font-medium text-gray-900">{{ mother.full_name }}</span>
+        </div>
+        <div class="px-6 py-4 flex justify-between items-center">
+          <span class="text-sm text-gray-600">Phone Number</span>
+          <span class="text-sm font-medium text-gray-900">{{ mother.phone_number }}</span>
+        </div>
+        {% if mother.email %}
+        <div class="px-6 py-4 flex justify-between items-center">
+          <span class="text-sm text-gray-600">Email Address</span>
+          <span class="text-sm font-medium text-gray-900">{{ mother.email }}</span>
+        </div>
+        {% endif %}
+        <div class="px-6 py-4 flex justify-between items-center">
+          <span class="text-sm text-gray-600">Member Since</span>
+          <span class="text-sm font-medium text-gray-900">{{ mother.date_joined|date:"F Y" }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Emergency Contact -->
+    {% if mother.emergency_contact_name %}
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-100 bg-gray-50">
+        <h2 class="text-lg font-semibold text-gray-900">Emergency Contact</h2>
+      </div>
+      <div class="p-6">
+        <div class="flex items-start gap-4">
+          <div class="flex-shrink-0 w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 text-xl font-medium">
+            {{ mother.emergency_contact_name|slice:":1"|upper }}
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">{{ mother.emergency_contact_name }}</p>
+            <a href="tel:{{ mother.emergency_contact_phone }}"
+               class="text-rose-600 hover:text-rose-700 text-sm font-medium mt-0.5 block">
+              {{ mother.emergency_contact_phone }}
+            </a>
+            {% if mother.emergency_contact_relationship %}
+              <p class="text-sm text-gray-500 mt-1 capitalize">
+                {{ mother.emergency_contact_relationship }}
+              </p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Children -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Children</h2>
+        <a href="{% url 'mothers:add_child' %}"
+           class="text-sm font-medium text-rose-600 hover:text-rose-700 px-4 py-2 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors">
+          Add Child
+        </a>
+      </div>
+
+      {% if mother.children.exists %}
+        <div class="divide-y divide-gray-100">
+          {% for child in mother.children.all %}
+          <a href="{% url 'mothers:child_detail' child.pk %}"
+             class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center text-xl">
+              {% if child.photo %}
+                <img src="{{ child.photo.url }}" alt="{{ child.name }}" class="w-full h-full object-cover">
+              {% else %}
+                {% if child.gender == 'M' %}👦{% elif child.gender == 'F' %}👧{% else %}👶{% endif %}
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-medium text-gray-900">{{ child.name }}</p>
+              <p class="text-sm text-gray-600 mt-0.5">{{ child.age_display }}</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="px-6 py-12 text-center">
+          <p class="text-gray-500">No children registered yet</p>
+          <a href="{% url 'mothers:add_child' %}"
+             class="mt-4 inline-flex items-center px-5 py-2.5 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 transition-colors">
+            Add First Child
+          </a>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- Actions -->
+    <div class="pt-4">
+      <a href="{% url 'mothers:logout' %}"
+         onclick="return confirm('Are you sure you want to sign out?')"
+         class="block w-full py-3.5 px-6 bg-white border border-gray-300 text-gray-700 font-medium rounded-xl text-center hover:bg-gray-50 transition-colors">
+        Sign Out
+      </a>
+    </div>
+
+  </main>
+
+</div>
+{% endblock %}

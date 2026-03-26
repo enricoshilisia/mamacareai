@@ -1,0 +1,136 @@
+{% extends "mothers/base.html" %}
+{% block title %}Waiting for Doctor – MamaCare{% endblock %}
+{% block topbar_title %}Consultation Request{% endblock %}
+
+{% block extra_head %}
+<style>
+  .wait-card {
+    max-width: 480px; margin: 40px auto 0;
+    background: var(--surface); border: 1px solid var(--rose-border);
+    border-radius: 20px; padding: 36px 28px; text-align: center;
+  }
+  .pulse-ring {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 20px;
+    animation: pulseRing 2s ease-in-out infinite;
+  }
+  @keyframes pulseRing {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(244,63,94,0.4); }
+    50%       { box-shadow: 0 0 0 16px rgba(244,63,94,0); }
+  }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+    border-radius: 99px; padding: 4px 12px; margin-bottom: 20px;
+  }
+  .badge-pending  { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+  .badge-accepted { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .badge-declined { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--rose-border);
+    font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { color: var(--ink-3); font-weight: 500; }
+  .info-val   { color: var(--ink);   font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wait-card" id="wait-card">
+
+  <div class="pulse-ring" id="pulse-icon">🩺</div>
+
+  <h2 style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--rose-deep);margin:0 0 6px;">
+    Request Sent
+  </h2>
+  <p style="font-size:13px;color:var(--ink-3);margin:0 0 18px;line-height:1.6;">
+    Your consultation request has been sent to
+    <strong style="color:var(--ink);">Dr. {{ consultation.physician.full_name }}</strong>.
+    We'll notify you as soon as they respond.
+  </p>
+
+  <span class="status-badge badge-{{ consultation.status }}" id="status-badge">
+    {% if consultation.status == 'pending' %}⏳ Waiting for doctor{% elif consultation.status == 'accepted' %}✅ Accepted{% elif consultation.status == 'declined' %}✕ Declined{% else %}{{ consultation.get_status_display }}{% endif %}
+  </span>
+
+  <div style="background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:14px;padding:16px;margin-bottom:20px;text-align:left;">
+    <div class="info-row">
+      <span class="info-label">Doctor</span>
+      <span class="info-val">Dr. {{ consultation.physician.full_name }}</span>
+    </div>
+    {% if consultation.child %}
+    <div class="info-row">
+      <span class="info-label">Child</span>
+      <span class="info-val">{{ consultation.child.name }} ({{ consultation.child.age_display }})</span>
+    </div>
+    {% endif %}
+    <div class="info-row">
+      <span class="info-label">Severity</span>
+      <span class="info-val" id="severity-cell">
+        {% if consultation.severity == 'mild' %}🟢{% elif consultation.severity == 'moderate' %}🟡{% elif consultation.severity == 'severe' %}🟠{% else %}🔴{% endif %}
+        {{ consultation.get_severity_display }}
+      </span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Requested at</span>
+      <span class="info-val">{{ consultation.created_at|date:"d M Y, H:i" }}</span>
+    </div>
+  </div>
+
+  <p style="font-size:12px;color:var(--ink-3);margin:0 0 8px;">Symptoms shared with doctor:</p>
+  <p style="font-size:13px;color:var(--ink-2);line-height:1.6;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:10px;padding:12px;text-align:left;margin-bottom:24px;">
+    {{ consultation.symptoms }}
+  </p>
+
+  <div id="action-area">
+    {% if consultation.status == 'accepted' %}
+    <a href="{% url 'consultations:chat_room' pk=consultation.pk %}"
+       style="display:block;padding:13px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;">
+      Open Chat Room →
+    </a>
+    {% elif consultation.status == 'declined' %}
+    <p style="font-size:13px;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:10px;padding:12px;">
+      Unfortunately, Dr. {{ consultation.physician.full_name }} has declined this request. You can go back and choose another doctor.
+    </p>
+    <a href="{% url 'chat:chat_home' %}"
+       style="display:inline-block;margin-top:12px;padding:10px 20px;background:var(--rose-pale);border:1px solid var(--rose-border);color:var(--rose-mid);border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;">
+      Back to Chat
+    </a>
+    {% else %}
+    <p style="font-size:12px;color:var(--ink-3);">This page refreshes automatically every 5 seconds.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  var STATUS     = "{{ consultation.status }}";
+  var POLL_URL   = "{% url 'consultations:poll' pk=consultation.pk %}";
+  var CHAT_URL   = "{% url 'consultations:chat_room' pk=consultation.pk %}";
+
+  function checkStatus() {
+    if (STATUS === 'accepted' || STATUS === 'declined') return;
+    fetch(POLL_URL)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.consultation_status && data.consultation_status !== STATUS) {
+          // Status changed — redirect
+          if (data.consultation_status === 'accepted') {
+            window.location.href = CHAT_URL;
+          } else {
+            window.location.reload();
+          }
+        }
+      })
+      .catch(function(){});
+  }
+
+  if (STATUS === 'pending') {
+    setInterval(checkStatus, 5000);
+  }
+</script>
+{% endblock %}

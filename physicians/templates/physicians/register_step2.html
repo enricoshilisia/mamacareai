@@ -1,0 +1,203 @@
+{% extends "mothers/base.html" %}
+{% block title %}Join MamaCare – Step 2{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-start justify-center pt-12 pb-16 px-5 sm:px-6 lg:px-8">
+  <div class="w-full max-w-2xl">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 text-white text-4xl shadow-lg mb-5 mx-auto">
+        🏥
+      </div>
+      <h1 class="text-4xl font-bold text-blue-900 mb-2">Your Practice</h1>
+      <p class="text-blue-500 text-base font-medium">Tell mothers where to find you</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-10 max-w-md mx-auto">
+      <div class="flex items-center justify-between mb-3">
+        {% for i in "123" %}
+        <div class="flex flex-col items-center flex-1">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all duration-300
+                      {% if forloop.counter <= step %}bg-blue-600 text-white ring-4 ring-blue-200{% else %}bg-blue-100 text-blue-400{% endif %}">
+            {{ forloop.counter }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex gap-2 mb-3">
+        <div class="flex-1 h-1.5 rounded-full bg-blue-600"></div>
+        <div class="flex-1 h-1.5 rounded-full bg-blue-600"></div>
+        <div class="flex-1 h-1.5 rounded-full bg-blue-100"></div>
+      </div>
+      <p class="text-center text-sm text-blue-500 font-medium">Step 2 of 3 · Professional Details</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-3xl shadow-lg p-6 sm:p-10 border border-blue-50">
+      <h2 class="text-2xl font-bold text-blue-900 mb-1 text-center">Your professional information</h2>
+      <p class="text-blue-400 text-sm mb-8 text-center">This is what mothers will see when browsing doctors</p>
+
+      <form method="post" novalidate class="grid grid-cols-1 md:grid-cols-2 gap-6" id="step2Form">
+        {% csrf_token %}
+
+        <!-- Specialization -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-blue-700 mb-2">Specialization <span class="text-blue-400">*</span></label>
+          <select name="specialization"
+                  class="w-full px-5 py-4 rounded-2xl border-2 {% if errors.specialization %}border-red-400 bg-red-50{% else %}border-blue-100 bg-blue-50/30{% endif %} text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200">
+            <option value="">— Select specialization —</option>
+            {% for val, label in specializations %}
+            <option value="{{ val }}" {% if data.specialization == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.specialization %}<p class="mt-2 text-sm text-red-600">{{ errors.specialization }}</p>{% endif %}
+        </div>
+
+        <!-- Hospital -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-blue-700 mb-2">Hospital / Clinic <span class="text-blue-400">*</span></label>
+          <input type="text" name="hospital" value="{{ data.hospital|default:'' }}"
+                 placeholder="e.g. Kenyatta National Hospital" required
+                 class="w-full px-5 py-4 rounded-2xl border-2 {% if errors.hospital %}border-red-400 bg-red-50{% else %}border-blue-100 bg-blue-50/30{% endif %} placeholder-blue-300 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200" />
+          {% if errors.hospital %}<p class="mt-2 text-sm text-red-600">{{ errors.hospital }}</p>{% endif %}
+        </div>
+
+        <!-- Country -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-blue-700 mb-2">Country <span class="text-blue-400">*</span></label>
+          <select name="country" id="countrySelect"
+                  onchange="loadCities(this.value)"
+                  class="w-full px-5 py-4 rounded-2xl border-2 {% if errors.country %}border-red-400 bg-red-50{% else %}border-blue-100 bg-blue-50/30{% endif %} text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200">
+            <option value="">— Select country —</option>
+            {% for country in countries %}
+            <option value="{{ country }}" {% if data.country == country %}selected{% endif %}>{{ country }}</option>
+            {% endfor %}
+          </select>
+          {% if errors.country %}<p class="mt-2 text-sm text-red-600">{{ errors.country }}</p>{% endif %}
+        </div>
+
+        <!-- City -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-blue-700 mb-2">City <span class="text-blue-400">*</span></label>
+          <select name="city" id="citySelect"
+                  class="w-full px-5 py-4 rounded-2xl border-2 {% if errors.city %}border-red-400 bg-red-50{% else %}border-blue-100 bg-blue-50/30{% endif %} text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  {% if not data.country %}disabled{% endif %}>
+            <option value="{{ data.city|default:'' }}">
+              {% if data.city %}{{ data.city }}{% else %}— Select country first —{% endif %}
+            </option>
+          </select>
+          <p id="cityHint" class="mt-1.5 text-xs text-blue-400 hidden">City not listed?
+            <button type="button" onclick="showCityInput()" class="text-blue-600 underline font-medium">Type it manually</button>
+          </p>
+          <input type="text" id="cityManual" name="city_manual"
+                 placeholder="Type your city..."
+                 class="hidden w-full mt-2 px-5 py-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 placeholder-blue-300 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200" />
+          {% if errors.city %}<p class="mt-2 text-sm text-red-600">{{ errors.city }}</p>{% endif %}
+        </div>
+
+        <!-- License Number -->
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-blue-700 mb-2">
+            License / Registration No. <span class="text-blue-300 font-normal">(optional)</span>
+          </label>
+          <input type="text" name="license_number" value="{{ data.license_number|default:'' }}"
+                 placeholder="Medical Council number"
+                 class="w-full px-5 py-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 placeholder-blue-300 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200" />
+        </div>
+
+        <!-- Buttons -->
+        <div class="md:col-span-2 flex gap-4 mt-2">
+          <a href="{% url 'physicians:physician_register' %}"
+             class="flex-1 py-4 rounded-2xl border-2 border-blue-200 text-blue-600 font-semibold text-base text-center hover:bg-blue-50 transition-all duration-200">
+            ← Back
+          </a>
+          <button type="submit"
+                  class="flex-grow py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-800 text-white font-semibold text-lg shadow-lg hover:brightness-105 active:scale-[0.98] transition-all duration-200">
+            Continue →
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const preselectedCity    = "{{ data.city|default:''|escapejs }}";
+const preselectedCountry = "{{ data.country|default:''|escapejs }}";
+
+// On page load, if we have a pre-selected country (came back from step 3), reload its cities
+if (preselectedCountry) {
+  loadCities(preselectedCountry, preselectedCity);
+}
+
+async function loadCities(country, preselectCity = "") {
+  const citySelect = document.getElementById("citySelect");
+  const cityHint   = document.getElementById("cityHint");
+
+  if (!country) {
+    citySelect.innerHTML = '<option value="">— Select country first —</option>';
+    citySelect.disabled  = true;
+    cityHint.classList.add("hidden");
+    return;
+  }
+
+  citySelect.innerHTML = '<option value="">Loading cities...</option>';
+  citySelect.disabled  = true;
+
+  try {
+    const res = await fetch("https://countriesnow.space/api/v0.1/countries/cities", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ country }),
+    });
+    const json = await res.json();
+
+    if (!json.error && json.data && json.data.length > 0) {
+      citySelect.innerHTML = '<option value="">— Select city —</option>';
+      json.data.forEach(city => {
+        const opt      = document.createElement("option");
+        opt.value      = city;
+        opt.textContent = city;
+        if (city === preselectCity) opt.selected = true;
+        citySelect.appendChild(opt);
+      });
+      citySelect.disabled = false;
+      cityHint.classList.remove("hidden");
+    } else {
+      // API returned no cities — show manual input
+      citySelect.innerHTML = '<option value="">No cities found</option>';
+      showCityInput();
+    }
+  } catch {
+    citySelect.innerHTML = '<option value="">Could not load cities</option>';
+    showCityInput();
+  }
+}
+
+function showCityInput() {
+  const manual = document.getElementById("cityManual");
+  const select = document.getElementById("citySelect");
+  manual.classList.remove("hidden");
+  select.classList.add("hidden");
+  // When manual input is used, clear the select so it doesn't submit a value
+  select.name   = "";
+  manual.name   = "city";
+}
+
+// Before form submit: if select is visible and has a value, use it; else use manual
+document.getElementById("step2Form").addEventListener("submit", function () {
+  const select = document.getElementById("citySelect");
+  const manual = document.getElementById("cityManual");
+  if (!manual.classList.contains("hidden")) {
+    // manual is active, select already renamed
+    return;
+  }
+  // Make sure select posts as "city"
+  select.name = "city";
+  manual.name = "";
+});
+</script>
+{% endblock %}

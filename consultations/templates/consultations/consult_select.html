@@ -1,0 +1,23 @@
+{% extends "mothers/base.html" %}
+{% block title %}Select a Doctor – MamaCare{% endblock %}
+{% block topbar_title %}Get Doctor Advice{% endblock %}
+
+{% block content %}
+{# This template is not directly used — the doctor selection UI is rendered
+   as a modal/overlay inside chat.html via JavaScript. This file is kept for
+   potential standalone use. #}
+<div style="max-width:520px;margin:40px auto 0;text-align:center;padding:40px 24px;
+            background:var(--surface);border:1px solid var(--rose-border);border-radius:20px;">
+  <div style="font-size:48px;margin-bottom:16px;">🩺</div>
+  <h2 style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--rose-deep);margin:0 0 10px;">
+    Doctor Selection
+  </h2>
+  <p style="font-size:13px;color:var(--ink-3);margin:0 0 20px;line-height:1.6;">
+    This page is embedded inside the AI chat. Please use the <strong>Get Doctor Advice</strong> button in the chat to find and select a doctor.
+  </p>
+  <a href="{% url 'chat:chat_home' %}"
+     style="display:inline-block;padding:11px 24px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;">
+    Go to Chat →
+  </a>
+</div>
+{% endblock %}

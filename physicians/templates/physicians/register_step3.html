@@ -1,0 +1,89 @@
+{% extends "mothers/base.html" %}
+{% block title %}Join MamaCare – Step 3{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-start justify-center pt-12 pb-16 px-5 sm:px-6 lg:px-8">
+  <div class="w-full max-w-2xl">
+
+    <!-- Header -->
+    <div class="text-center mb-10">
+      <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-800 text-white text-4xl shadow-lg mb-5 mx-auto">
+        📝
+      </div>
+      <h1 class="text-4xl font-bold text-blue-900 mb-2">Almost Done</h1>
+      <p class="text-blue-500 text-base font-medium">Help mothers get to know you</p>
+    </div>
+
+    <!-- Progress -->
+    <div class="mb-10 max-w-md mx-auto">
+      <div class="flex items-center justify-between mb-3">
+        {% for i in "123" %}
+        <div class="flex flex-col items-center flex-1">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-sm transition-all duration-300
+                      {% if forloop.counter <= step %}bg-blue-600 text-white ring-4 ring-blue-200{% else %}bg-blue-100 text-blue-400{% endif %}">
+            {{ forloop.counter }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="flex gap-2 mb-3">
+        <div class="flex-1 h-1.5 rounded-full bg-blue-600"></div>
+        <div class="flex-1 h-1.5 rounded-full bg-blue-600"></div>
+        <div class="flex-1 h-1.5 rounded-full bg-blue-600"></div>
+      </div>
+      <p class="text-center text-sm text-blue-500 font-medium">Step 3 of 3 · About You</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white rounded-3xl shadow-lg p-6 sm:p-10 border border-blue-50">
+      <h2 class="text-2xl font-bold text-blue-900 mb-1 text-center">Your professional profile</h2>
+      <p class="text-blue-400 text-sm mb-8 text-center">Both fields are optional — you can always update them after approval</p>
+
+      <form method="post" novalidate class="space-y-6">
+        {% csrf_token %}
+
+        <!-- Bio -->
+        <div>
+          <label class="block text-sm font-semibold text-blue-700 mb-2">
+            Professional Bio <span class="text-blue-300 font-normal">(optional)</span>
+          </label>
+          <textarea name="bio" rows="4"
+                    placeholder="Brief overview of your background, experience, and approach to patient care..."
+                    class="w-full px-5 py-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 placeholder-blue-300 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200 resize-none">{{ data.bio|default:'' }}</textarea>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <label class="block text-sm font-semibold text-blue-700 mb-2">
+            Anything else? <span class="text-blue-300 font-normal">(optional)</span>
+          </label>
+          <textarea name="notes" rows="3"
+                    placeholder="Any additional information you'd like the MamaCare team to know..."
+                    class="w-full px-5 py-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 placeholder-blue-300 text-gray-800 focus:outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/40 transition-all duration-200 resize-none">{{ data.notes|default:'' }}</textarea>
+        </div>
+
+        <!-- Info box -->
+        <div class="rounded-2xl bg-blue-50 border border-blue-100 px-5 py-4 flex gap-3 items-start">
+          <span class="text-xl mt-0.5">💌</span>
+          <p class="text-sm text-blue-700 leading-relaxed">
+            We review all applications within <strong>2 business days</strong>. You'll hear from us at the email you provided.
+          </p>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-4 pt-2">
+          <a href="{% url 'physicians:physician_register_step2' %}"
+             class="flex-1 py-4 rounded-2xl border-2 border-blue-200 text-blue-600 font-semibold text-base text-center hover:bg-blue-50 transition-all duration-200">
+            ← Back
+          </a>
+          <button type="submit"
+                  class="flex-grow py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-800 text-white font-semibold text-lg shadow-lg hover:brightness-105 active:scale-[0.98] transition-all duration-200">
+            Submit Application 🎉
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

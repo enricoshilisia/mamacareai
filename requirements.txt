@@ -1,0 +1,30 @@
+# ── Web framework ──────────────────────────────────────────────────────────────
+Django==6.0.3
+gunicorn==25.2.0
+whitenoise==6.12.0
+asgiref==3.11.1
+sqlparse==0.5.5
+
+# ── Database ───────────────────────────────────────────────────────────────────
+psycopg2-binary==2.9.11
+dj-database-url==3.1.2
+
+# ── Environment config ─────────────────────────────────────────────────────────
+python-decouple==3.8
+
+# ── Forms & utilities ──────────────────────────────────────────────────────────
+django-formtools==2.5.1
+Pillow==12.1.1
+requests==2.32.5
+
+# ── Azure OpenAI ───────────────────────────────────────────────────────────────
+openai==2.29.0
+
+# ── Predictions / Cry Analyser ─────────────────────────────────────────────────
+tensorflow==2.21.0
+scikit-learn==1.8.0
+librosa==0.11.0
+pydub==0.25.1
+soundfile==0.13.1
+audioread==3.1.0
+numba==0.64.0

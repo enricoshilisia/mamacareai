@@ -1,0 +1,341 @@
+{% extends base_template %}
+{% block title %}Consultation Chat – MamaCare{% endblock %}
+{% block topbar_title %}Consultation{% endblock %}
+
+{% block extra_head %}
+<style>
+  {% if viewer == 'doctor' %}
+  --chat-primary:        var(--blue-mid, #2563eb);
+  --chat-primary-deep:   var(--blue-deep, #1d4ed8);
+  --chat-pale:           var(--blue-pale, #eff6ff);
+  --chat-border:         var(--blue-border, #dbeafe);
+  --chat-blush:          var(--blue-light, #bfdbfe);
+  --bubble-self:         linear-gradient(135deg,#2563eb,#1d4ed8);
+  --bubble-other-bg:     #f8faff;
+  --bubble-other-border: #dbeafe;
+  {% else %}
+  --chat-primary:        var(--rose-mid, #e11d48);
+  --chat-primary-deep:   var(--rose-deep, #be123c);
+  --chat-pale:           var(--rose-pale, #fff1f2);
+  --chat-border:         var(--rose-border, #fde8ec);
+  --chat-blush:          var(--rose-blush, #fecdd3);
+  --bubble-self:         linear-gradient(135deg,#e11d48,#be123c);
+  --bubble-other-bg:     #ffffff;
+  --bubble-other-border: #fde8ec;
+  {% endif %}
+
+  .consult-shell {
+    display: flex; flex-direction: column;
+    height: calc(100vh - var(--topbar-h, 60px));
+    margin: -30px -34px; overflow: hidden;
+  }
+  @media (max-width: 1023px) {
+    .consult-shell { height: calc(100vh - 56px - 60px); margin: -16px -16px; }
+  }
+
+  /* ── Info header ── */
+  .consult-info {
+    flex-shrink: 0; padding: 12px 18px;
+    background: var(--chat-pale); border-bottom: 1px solid var(--chat-border);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .sev-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    border-radius: 99px; padding: 3px 10px;
+  }
+  .sev-mild     { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+  .sev-moderate { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+  .sev-severe   { background: #ffedd5; color: #9a3412; border: 1px solid #fdba74; }
+  .sev-critical { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+  /* ── Messages ── */
+  .c-messages {
+    flex: 1; overflow-y: auto; padding: 16px 18px 12px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .c-msg-row { display: flex; gap: 8px; align-items: flex-end; }
+  .c-msg-row.self { flex-direction: row-reverse; }
+
+  .c-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; min-width: 28px;
+  }
+  .c-avatar.other { background: var(--chat-blush); color: var(--chat-primary-deep); }
+  .c-avatar.self-av { background: var(--chat-primary); color: white; }
+
+  .c-bubble-wrap { display: flex; flex-direction: column; max-width: calc(100% - 40px); }
+  .c-msg-row.self .c-bubble-wrap { align-items: flex-end; }
+
+  .c-bubble {
+    display: inline-block; padding: 10px 14px;
+    border-radius: 18px; font-size: 13.5px; line-height: 1.65;
+    word-break: break-word; max-width: 100%;
+  }
+  .c-bubble.other {
+    background: var(--bubble-other-bg); border: 1px solid var(--bubble-other-border);
+    color: var(--ink, #0f172a); border-bottom-left-radius: 4px;
+  }
+  .c-bubble.self-bubble {
+    background: var(--bubble-self);
+    color: white; border-bottom-right-radius: 4px;
+  }
+  .c-time { font-size: 10px; color: var(--ink-3, #64748b); margin-top: 4px; }
+  .c-msg-row.self .c-time { text-align: right; }
+
+  /* ── Input ── */
+  .c-input-area {
+    flex-shrink: 0; padding: 10px 14px 14px;
+    border-top: 1px solid var(--chat-border); background: #fff;
+  }
+  .c-input-row { display: flex; align-items: flex-end; gap: 8px; }
+  #c-input {
+    flex: 1; padding: 10px 13px;
+    border: 1.5px solid var(--chat-border); border-radius: 14px;
+    background: var(--chat-pale); color: var(--ink, #0f172a);
+    font-size: 13.5px; font-family: 'Plus Jakarta Sans', sans-serif;
+    outline: none; resize: none; max-height: 120px; overflow-y: auto;
+    line-height: 1.5; transition: border-color .15s;
+  }
+  #c-input:focus { border-color: var(--chat-primary); }
+  #c-send {
+    width: 40px; height: 40px; border-radius: 11px; flex-shrink: 0;
+    background: var(--bubble-self); border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 10px rgba(0,0,0,.18); transition: transform .12s;
+  }
+  #c-send:hover { transform: scale(1.05); }
+  #c-send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+  #c-send svg { width: 17px; height: 17px; stroke: white; stroke-width: 2.2; }
+
+  /* ── Summary card ── */
+  .summary-card {
+    background: var(--chat-pale); border: 1px solid var(--chat-border);
+    border-radius: 12px; padding: 14px 16px; margin: 12px 18px;
+    font-size: 12.5px; color: var(--ink-2, #334155); line-height: 1.65;
+    flex-shrink: 0;
+  }
+  .summary-card strong { color: var(--chat-primary); }
+
+  {% if viewer == 'doctor' %}
+  .complete-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #dcfce7; border: 1px solid #86efac;
+    color: #166534; border-radius: 8px; padding: 6px 14px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    text-decoration: none; margin-left: 8px; transition: background .12s;
+  }
+  .complete-btn:hover { background: #bbf7d0; }
+  {% endif %}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="consult-shell">
+
+  {# ── Info header ── #}
+  <div class="consult-info">
+    <div>
+      {% if consultation.child %}
+      <p style="font-size:14px;font-weight:600;color:var(--ink,#0f172a);margin:0;">
+        {{ consultation.child.name }}
+        <span style="font-size:11px;font-weight:400;color:var(--ink-3,#64748b);">{{ consultation.child.age_display }}</span>
+      </p>
+      {% else %}
+      <p style="font-size:14px;font-weight:600;color:var(--ink,#0f172a);margin:0;">
+        {% if viewer == 'doctor' %}{{ consultation.mother.first_name }}'s Consultation{% else %}Dr. {{ consultation.physician.full_name }}{% endif %}
+      </p>
+      {% endif %}
+      <p style="font-size:11px;color:var(--ink-3,#64748b);margin:0;">
+        {% if viewer == 'doctor' %}
+          Mother: {{ consultation.mother.full_name }}
+        {% else %}
+          Dr. {{ consultation.physician.full_name }} · {{ consultation.physician.get_specialization_display }}
+        {% endif %}
+      </p>
+    </div>
+
+    <span class="sev-badge sev-{{ consultation.severity }}">
+      {% if consultation.severity == 'mild' %}🟢{% elif consultation.severity == 'moderate' %}🟡{% elif consultation.severity == 'severe' %}🟠{% else %}🔴{% endif %}
+      {{ consultation.get_severity_display }}
+    </span>
+
+    {% if viewer == 'doctor' %}
+    <form method="post" action="{% url 'consultations:complete' pk=consultation.pk %}" style="margin-left:auto;">
+      {% csrf_token %}
+      <button type="submit" class="complete-btn" onclick="return confirm('Mark this consultation as completed?')">
+        ✓ Mark Complete
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {# ── AI summary (collapsed section) ── #}
+  {% if consultation.ai_summary %}
+  <details class="summary-card" style="cursor:pointer;">
+    <summary style="font-weight:600;color:var(--chat-primary);font-size:12.5px;list-style:none;display:flex;align-items:center;gap:6px;">
+      <span>▸</span> Clinical Summary (AI)
+    </summary>
+    <p style="margin:8px 0 0;">{{ consultation.ai_summary }}</p>
+  </details>
+  {% endif %}
+
+  {# ── Messages ── #}
+  <div class="c-messages" id="c-messages">
+    {% for msg in messages %}
+    {% if viewer == 'doctor' %}
+      {% if msg.sender_type == 'doctor' %}
+      <div class="c-msg-row self">
+        <div class="c-bubble-wrap">
+          <div class="c-bubble self-bubble">{{ msg.content }}</div>
+          <div class="c-time">{{ msg.created_at|date:"H:i" }}</div>
+        </div>
+        <div class="c-avatar self-av">D</div>
+      </div>
+      {% else %}
+      <div class="c-msg-row">
+        <div class="c-avatar other">{{ consultation.mother.first_name|slice:":1"|upper }}</div>
+        <div class="c-bubble-wrap">
+          <div class="c-bubble other">{{ msg.content }}</div>
+          <div class="c-time">{{ msg.created_at|date:"H:i" }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% else %}
+      {% if msg.sender_type == 'mother' %}
+      <div class="c-msg-row self">
+        <div class="c-bubble-wrap">
+          <div class="c-bubble self-bubble">{{ msg.content }}</div>
+          <div class="c-time">{{ msg.created_at|date:"H:i" }}</div>
+        </div>
+        <div class="c-avatar self-av">{{ request.user.first_name|slice:":1"|upper }}</div>
+      </div>
+      {% else %}
+      <div class="c-msg-row">
+        <div class="c-avatar other">D</div>
+        <div class="c-bubble-wrap">
+          <div class="c-bubble other">{{ msg.content }}</div>
+          <div class="c-time">{{ msg.created_at|date:"H:i" }}</div>
+        </div>
+      </div>
+      {% endif %}
+    {% endif %}
+    {% empty %}
+    <div style="text-align:center;padding:40px 20px;color:var(--ink-3,#64748b);">
+      <p style="font-size:28px;margin-bottom:10px;">💬</p>
+      <p style="font-size:13px;">No messages yet. Start the conversation!</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# ── Input ── #}
+  <div class="c-input-area">
+    <div class="c-input-row">
+      <textarea id="c-input" rows="1"
+                placeholder="Type a message…"
+                maxlength="2000"></textarea>
+      <button id="c-send" aria-label="Send">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var SEND_URL   = "{% url 'consultations:send_message' pk=consultation.pk %}";
+  var POLL_URL   = "{% url 'consultations:poll' pk=consultation.pk %}";
+  var CSRF_TOKEN = "{{ csrf_token }}";
+  var VIEWER     = "{{ viewer }}";
+  var SELF_INIT  = "{% if viewer == 'doctor' %}D{% else %}{{ request.user.first_name|slice:':1'|upper }}{% endif %}";
+  var OTHER_INIT = "{% if viewer == 'doctor' %}{{ consultation.mother.first_name|slice:':1'|upper }}{% else %}D{% endif %}";
+
+  var msgArea    = document.getElementById('c-messages');
+  var inputEl    = document.getElementById('c-input');
+  var sendBtn    = document.getElementById('c-send');
+  var lastTs     = null;
+
+  // Initialise lastTs from last message
+  var allMsgs    = msgArea.querySelectorAll('.c-msg-row');
+  if (allMsgs.length > 0) {
+    // We'll rely on the poll to figure out new messages, seed with now
+    lastTs = new Date().toISOString();
+  }
+
+  function scrollBottom() { msgArea.scrollTop = msgArea.scrollHeight; }
+  scrollBottom();
+
+  function appendMessage(senderType, content, time) {
+    var isSelf = (VIEWER === 'doctor' && senderType === 'doctor') ||
+                 (VIEWER === 'mother' && senderType === 'mother');
+    var row = document.createElement('div');
+    row.className = 'c-msg-row' + (isSelf ? ' self' : '');
+    var avatarClass = isSelf ? 'self-av' : 'other';
+    var init        = isSelf ? SELF_INIT : OTHER_INIT;
+    var bubbleClass = isSelf ? 'self-bubble' : 'other';
+    row.innerHTML = isSelf
+      ? '<div class="c-bubble-wrap"><div class="c-bubble ' + bubbleClass + '">' + escHtml(content) + '</div><div class="c-time">' + time + '</div></div><div class="c-avatar ' + avatarClass + '">' + init + '</div>'
+      : '<div class="c-avatar ' + avatarClass + '">' + init + '</div><div class="c-bubble-wrap"><div class="c-bubble ' + bubbleClass + '">' + escHtml(content) + '</div><div class="c-time">' + time + '</div></div>';
+    msgArea.appendChild(row);
+    scrollBottom();
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  }
+
+  // ── Send ──
+  inputEl.addEventListener('input', function() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+  inputEl.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+  sendBtn.addEventListener('click', sendMessage);
+
+  async function sendMessage() {
+    var text = inputEl.value.trim();
+    if (!text || sendBtn.disabled) return;
+    inputEl.value = ''; inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+    try {
+      var res = await fetch(SEND_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN },
+        body: JSON.stringify({ content: text }),
+      });
+      var data = await res.json();
+      if (data.ok) {
+        appendMessage(data.sender_type, data.content, data.time);
+        lastTs = data.created_at;
+      }
+    } catch (e) { console.error(e); }
+    finally { sendBtn.disabled = false; inputEl.focus(); }
+  }
+
+  // ── Poll every 3 s ──
+  function pollMessages() {
+    var url = POLL_URL + (lastTs ? '?after=' + encodeURIComponent(lastTs) : '');
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(function(m){
+            appendMessage(m.sender_type, m.content, m.time);
+            lastTs = m.created_at;
+          });
+        }
+        if (data.consultation_status === 'completed') {
+          document.querySelectorAll('.complete-btn').forEach(function(b){ b.textContent = '✓ Completed'; b.style.opacity = '.6'; b.style.pointerEvents = 'none'; });
+        }
+      })
+      .catch(function(){});
+  }
+
+  setInterval(pollMessages, 3000);
+</script>
+{% endblock %}

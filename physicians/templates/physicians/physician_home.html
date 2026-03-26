@@ -1,0 +1,162 @@
+{% extends "physicians/base.html" %}
+{% block title %}Dashboard – MamaCare Doctor Portal{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div style="max-width:720px;margin:0 auto;">
+
+  {# ── Pending Consultations ── #}
+  {% if physician %}
+  <div style="margin-bottom:28px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--blue-deep);margin:0;">
+        Pending Consultations
+      </h2>
+      <a href="{% url 'consultations:inbox' %}"
+         style="font-size:12px;font-weight:600;color:var(--blue-mid);text-decoration:none;background:var(--blue-pale);border:1px solid var(--blue-border);border-radius:8px;padding:6px 13px;">
+        View All →
+      </a>
+    </div>
+
+    {# Filter to pending only in template #}
+    {% with pending_list=physician.consultations.all %}
+    {% for c in pending_list %}{% if c.status == 'pending' %}
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:16px;padding:18px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:14px;font-weight:600;color:var(--ink);margin:0 0 2px;">
+            {{ c.mother.full_name }}
+            {% if c.child %}<span style="font-weight:400;color:var(--ink-3);font-size:12px;"> — {{ c.child.name }}, {{ c.child.age_display }}</span>{% endif %}
+          </p>
+          <p style="font-size:11px;color:var(--ink-3);margin:0 0 8px;">Requested {{ c.created_at|timesince }} ago</p>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:99px;padding:3px 9px;flex-shrink:0;{% if c.severity == 'mild' %}background:#dcfce7;color:#166534;border:1px solid #86efac;{% elif c.severity == 'moderate' %}background:#fef9c3;color:#854d0e;border:1px solid #fde047;{% elif c.severity == 'severe' %}background:#ffedd5;color:#9a3412;border:1px solid #fdba74;{% else %}background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;{% endif %}">
+          {% if c.severity == 'mild' %}🟢{% elif c.severity == 'moderate' %}🟡{% elif c.severity == 'severe' %}🟠{% else %}🔴{% endif %} {{ c.get_severity_display }}
+        </span>
+      </div>
+      <p style="font-size:12.5px;color:var(--ink-2);line-height:1.6;background:var(--blue-pale);border:1px solid var(--blue-border);border-radius:8px;padding:10px 12px;margin:0 0 12px;">
+        {{ c.symptoms }}
+      </p>
+      <div style="display:flex;gap:8px;">
+        <form method="post" action="{% url 'consultations:respond' pk=c.pk %}" style="display:inline;">
+          {% csrf_token %}<input type="hidden" name="action" value="accept">
+          <button type="submit" style="padding:8px 16px;background:linear-gradient(135deg,#16a34a,#15803d);color:white;border:none;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✓ Accept</button>
+        </form>
+        <form method="post" action="{% url 'consultations:respond' pk=c.pk %}" style="display:inline;">
+          {% csrf_token %}<input type="hidden" name="action" value="decline">
+          <button type="submit" onclick="return confirm('Decline this request?')" style="padding:8px 16px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">✕ Decline</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}{% endfor %}
+    {% endwith %}
+
+  </div>
+  {% endif %}
+
+
+  {# ── Welcome ── #}
+  <div style="margin-bottom:28px;">
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;color:var(--blue-deep);margin:0 0 6px;">
+      Welcome, Dr. {{ user.first_name }} 👋
+    </h1>
+    <p style="font-size:13px;color:var(--ink-3);margin:0;">
+      Here's a summary of your MamaCare profile
+    </p>
+  </div>
+
+  {% if physician %}
+
+  {# ── Profile card ── #}
+  <div style="background:linear-gradient(135deg,var(--blue-pale),#e0f2fe);border:1px solid var(--blue-border);border-radius:20px;padding:24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:18px;">
+    <div style="width:72px;height:72px;border-radius:16px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:32px;background:linear-gradient(135deg,#bfdbfe,#93c5fd);">
+      {% if physician.photo %}<img src="{{ physician.photo.url }}" style="width:100%;height:100%;object-fit:cover;">
+      {% else %}🩺{% endif %}
+    </div>
+    <div style="flex:1;">
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;color:var(--blue-deep);margin:0 0 4px;">
+        Dr. {{ physician.full_name }}
+      </h2>
+      <p style="font-size:13px;font-weight:600;color:var(--blue-mid);margin:0 0 2px;">
+        {{ physician.get_specialization_display }}
+      </p>
+      <p style="font-size:12px;color:var(--ink-3);margin:0;">
+        {{ physician.hospital }} · {{ physician.city }}{% if physician.country %}, {{ physician.country }}{% endif %}
+      </p>
+    </div>
+    <a href="{% url 'physicians:physician_detail' physician.pk %}"
+       style="font-size:12px;font-weight:600;color:var(--blue-mid);text-decoration:none;background:white;border:1px solid var(--blue-border);border-radius:8px;padding:7px 14px;white-space:nowrap;flex-shrink:0;">
+      View Profile →
+    </a>
+  </div>
+
+  {# ── Stats row ── #}
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:18px 16px;text-align:center;">
+      <p style="font-size:28px;font-weight:700;color:var(--blue-deep);font-family:'Cormorant Garamond',serif;margin:0 0 4px;">
+        {{ physician.rating|floatformat:1 }}
+      </p>
+      <p style="font-size:11px;color:var(--ink-3);margin:0;">Average Rating</p>
+      <p style="color:#f59e0b;font-size:14px;margin-top:4px;">
+        {% for i in "12345" %}{% if forloop.counter <= physician.rating %}★{% else %}☆{% endif %}{% endfor %}
+      </p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:18px 16px;text-align:center;">
+      <p style="font-size:28px;font-weight:700;color:var(--blue-deep);font-family:'Cormorant Garamond',serif;margin:0 0 4px;">
+        {{ physician.review_count }}
+      </p>
+      <p style="font-size:11px;color:var(--ink-3);margin:0;">Review{{ physician.review_count|pluralize }}</p>
+    </div>
+
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:18px 16px;text-align:center;">
+      <p style="font-size:24px;font-weight:700;font-family:'Cormorant Garamond',serif;margin:0 0 4px;
+        {% if physician.is_available %}color:#16a34a;{% else %}color:#dc2626;{% endif %}">
+        {% if physician.is_available %}Open{% else %}Closed{% endif %}
+      </p>
+      <p style="font-size:11px;color:var(--ink-3);margin:0;">Availability</p>
+    </div>
+
+  </div>
+
+  {# ── Recent reviews ── #}
+  {% if reviews %}
+  <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:20px;margin-bottom:16px;">
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--ink);margin:0 0 14px;">
+      Recent Reviews
+    </h3>
+    {% for review in reviews %}
+    <div style="padding:12px 0;{% if not forloop.last %}border-bottom:1px solid var(--blue-border);{% endif %}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0;">{{ review.mother.first_name }}</p>
+        <span style="color:#f59e0b;font-size:13px;">
+          {% for i in "12345" %}{% if forloop.counter <= review.rating %}★{% else %}☆{% endif %}{% endfor %}
+        </span>
+      </div>
+      {% if review.comment %}
+      <p style="font-size:13px;color:var(--ink-2);margin:0;line-height:1.6;">{{ review.comment }}</p>
+      {% endif %}
+      <p style="font-size:11px;color:var(--ink-3);margin:4px 0 0;">{{ review.created_at|date:"d M Y" }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+
+  {# ── Pending approval state ── #}
+  <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:18px;padding:48px 24px;text-align:center;">
+    <div style="font-size:56px;margin-bottom:16px;">⏳</div>
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:var(--blue-deep);margin:0 0 10px;">
+      Application Under Review
+    </h2>
+    <p style="font-size:13.5px;color:var(--ink-2);line-height:1.7;max-width:400px;margin:0 auto;">
+      Your registration is being reviewed by the MamaCare team. You'll be notified once approved — typically within 2 business days.
+    </p>
+  </div>
+
+  {% endif %}
+
+</div>
+{% endblock %}

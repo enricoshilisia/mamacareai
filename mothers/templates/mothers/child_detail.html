@@ -1,0 +1,141 @@
+{% extends "mothers/base.html" %}
+{% block title %}{{ child.name }} — MamaCare 🌸{% endblock %}
+
+{% block content %}
+<div class="page-enter">
+
+  <!-- Header -->
+  <div class="relative overflow-hidden pt-12 pb-10 text-center"
+       style="background: linear-gradient(160deg,
+         {% if child.gender == 'M' %}#dbeafe, #bfdbfe{% else %}#fce7f3, #ffe4e6{% endif %} 100%);">
+    <div class="absolute top-4 left-5">
+      <a href="{% url 'mothers:home' %}"
+         class="w-9 h-9 rounded-xl bg-white/60 flex items-center justify-center text-rose-500 font-bold inline-flex">
+        ←
+      </a>
+    </div>
+    <div class="absolute top-4 right-5">
+      <a href="{% url 'mothers:edit_child' child.pk %}"
+         class="w-9 h-9 rounded-xl bg-white/60 flex items-center justify-center inline-flex">
+        ✏️
+      </a>
+    </div>
+
+    <!-- Avatar -->
+    <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-4 border-white mb-3 flex items-center justify-center text-4xl"
+         style="box-shadow: 0 6px 24px rgba(244,63,94,0.2);
+                background: linear-gradient(135deg, {% if child.gender == 'M' %}#93c5fd, #60a5fa{% else %}#fda4af, #f9a8d4{% endif %});">
+      {% if child.photo %}
+        <img src="{{ child.photo.url }}" alt="{{ child.name }}" class="w-full h-full object-cover">
+      {% else %}
+        {% if child.gender == 'M' %}👦{% elif child.gender == 'F' %}👧{% else %}👶{% endif %}
+      {% endif %}
+    </div>
+
+    <h1 class="text-2xl font-bold {% if child.gender == 'M' %}text-blue-800{% else %}text-rose-800{% endif %}">
+      {{ child.name }}
+    </h1>
+    <p class="{% if child.gender == 'M' %}text-blue-500{% else %}text-rose-400{% endif %} text-sm mt-1">
+      {{ child.age_display }} · {{ child.gender_display }}
+    </p>
+
+    <!-- DOB badge -->
+    <div class="inline-flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full bg-white/60 backdrop-blur">
+      <span class="text-sm">🎂</span>
+      <span class="text-xs font-semibold {% if child.gender == 'M' %}text-blue-600{% else %}text-rose-600{% endif %}">
+        {{ child.date_of_birth|date:"F j, Y" }}
+      </span>
+    </div>
+  </div>
+
+  <div class="px-5 pt-5 space-y-4 pb-10">
+
+    <!-- Health info -->
+    <div class="card">
+      <h3 class="font-bold text-rose-700 text-sm uppercase tracking-wide mb-3">🏥 Health Info</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-rose-50 rounded-2xl p-3">
+          <p class="text-xs text-rose-400 mb-0.5">Blood Group</p>
+          <p class="font-bold text-rose-800">{{ child.blood_group|upper }}</p>
+        </div>
+        {% if child.birth_weight_kg %}
+        <div class="bg-rose-50 rounded-2xl p-3">
+          <p class="text-xs text-rose-400 mb-0.5">Birth Weight</p>
+          <p class="font-bold text-rose-800">{{ child.birth_weight_kg }} kg</p>
+        </div>
+        {% endif %}
+        {% if child.birth_hospital %}
+        <div class="bg-rose-50 rounded-2xl p-3 col-span-2">
+          <p class="text-xs text-rose-400 mb-0.5">Birth Hospital</p>
+          <p class="font-semibold text-rose-800 text-sm">{{ child.birth_hospital }}</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Pediatrician -->
+    {% if child.pediatrician_name %}
+    <div class="card">
+      <h3 class="font-bold text-rose-700 text-sm uppercase tracking-wide mb-3">👨‍⚕️ Pediatrician</h3>
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-2xl">👨‍⚕️</div>
+        <div>
+          <p class="font-bold text-rose-800">{{ child.pediatrician_name }}</p>
+          {% if child.pediatrician_phone %}
+          <a href="tel:{{ child.pediatrician_phone }}"
+             class="text-rose-500 text-sm font-medium">{{ child.pediatrician_phone }}</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Allergies -->
+    {% if child.allergies %}
+    <div class="rounded-3xl p-4 border-2 border-amber-200 bg-amber-50">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">⚠️</span>
+        <div>
+          <p class="font-bold text-amber-700 text-sm mb-1">Allergies / Conditions</p>
+          <p class="text-amber-600 text-sm">{{ child.allergies }}</p>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Notes -->
+    {% if child.notes %}
+    <div class="card">
+      <h3 class="font-bold text-rose-700 text-sm uppercase tracking-wide mb-2">📝 Notes</h3>
+      <p class="text-gray-600 text-sm leading-relaxed">{{ child.notes }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Quick actions (placeholders) -->
+    <div>
+      <h3 class="font-bold text-rose-800 text-base mb-3">Track Today</h3>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="card text-center py-3 opacity-50">
+          <div class="text-2xl mb-1">😴</div>
+          <p class="text-xs text-rose-500">Sleep</p>
+        </div>
+        <div class="card text-center py-3 opacity-50">
+          <div class="text-2xl mb-1">🍼</div>
+          <p class="text-xs text-rose-500">Feed</p>
+        </div>
+        <div class="card text-center py-3 opacity-50">
+          <div class="text-2xl mb-1">🩺</div>
+          <p class="text-xs text-rose-500">Health</p>
+        </div>
+      </div>
+      <p class="text-center text-xs text-rose-300 mt-2">More features coming soon 💕</p>
+    </div>
+
+    <!-- Edit button -->
+    <a href="{% url 'mothers:edit_child' child.pk %}" class="btn-primary text-center block">
+      ✏️ Edit {{ child.name }}'s Info
+    </a>
+
+  </div>
+</div>
+{% endblock %}
