@@ -67,6 +67,13 @@
       {{ physician.bio }}
     </p>
     {% endif %}
+
+    {% if not request.user.is_doctor %}
+    <button onclick="document.getElementById('reqModal').style.display='flex'"
+            style="margin-top:16px;width:100%;padding:12px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+      🩺 Request Consultation
+    </button>
+    {% endif %}
   </div>
 
   {# ── Contact ── #}
@@ -166,4 +173,43 @@
   {% endif %}
 
 </div>
+
+{% if not request.user.is_doctor %}
+{# ── Request Consultation Modal ── #}
+<div id="reqModal" style="display:none;position:fixed;inset:0;background:rgba(253,248,249,0.92);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:20px;padding:26px 22px;width:min(420px,calc(100vw - 28px));box-shadow:0 8px 40px rgba(190,18,60,.15);position:relative;">
+    <button onclick="document.getElementById('reqModal').style.display='none'" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--ink-3);">✕</button>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--rose-deep);margin:0 0 4px;">Request Consultation</h3>
+    <p style="font-size:13px;color:var(--ink-3);margin:0 0 16px;">Dr. {{ physician.full_name }}</p>
+    <form method="post" action="{% url 'consultations:request' %}">
+      {% csrf_token %}
+      <input type="hidden" name="physician_id" value="{{ physician.pk }}">
+      <input type="hidden" name="severity" value="moderate">
+      <input type="hidden" name="specialist" value="{{ physician.specialization }}">
+      <input type="hidden" name="conv_id" value="">
+      <input type="hidden" name="child_id" value="">
+      <input type="hidden" name="lat" id="detailLat" value="">
+      <input type="hidden" name="lon" id="detailLon" value="">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Describe your concern</label>
+      <textarea name="symptoms" rows="4" required
+                placeholder="e.g. My baby has had a fever since yesterday and is not feeding well…"
+                style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;transition:border-color .15s;"
+                onfocus="this.style.borderColor='var(--rose-mid)'"
+                onblur="this.style.borderColor='var(--rose-border)'"></textarea>
+      <button type="submit"
+              style="margin-top:12px;width:100%;padding:12px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        Send Request 🩺
+      </button>
+    </form>
+  </div>
+</div>
+<script>
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    document.getElementById('detailLat').value = pos.coords.latitude;
+    document.getElementById('detailLon').value = pos.coords.longitude;
+  }, function(){}, { timeout: 5000 });
+}
+</script>
+{% endif %}
 {% endblock %}

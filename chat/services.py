@@ -32,6 +32,13 @@ def build_system_prompt(mother, child=None) -> str:
         "very end, add exactly this token and nothing after it: [RECORD_CRY]",
         "Use ONLY this token for crying questions. Never use it for any other topic.",
         "",
+        "SPECIAL FORMAT — Doctor requests:",
+        "When a mother asks to contact, find, or see a doctor (e.g. 'help me contact a doctor', "
+        "'I need a doctor', 'find me a doctor nearby', 'can I speak to a doctor?'), give a brief "
+        "reassuring response. Then on a new line at the very end, add exactly this token and "
+        "nothing after it: [SUGGEST_DOCTOR]",
+        "Use ONLY this token when the mother explicitly asks to find or contact a doctor.",
+        "",
         f"Mother's name: {mother.full_name}",
         f"Location: {mother.city or 'Kenya'}",
     ]

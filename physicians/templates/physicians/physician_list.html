@@ -123,7 +123,7 @@
     </p>
 
     {% for doc in physicians %}
-    <a href="{% url 'physicians:physician_detail' doc.pk %}" class="doctor-card">
+    <div class="doctor-card" style="cursor:default;">
       <div class="doctor-avatar">
         {% if doc.photo %}<img src="{{ doc.photo.url }}" alt="Dr. {{ doc.full_name }}">
         {% else %}👨‍⚕️{% endif %}
@@ -147,12 +147,15 @@
           <span style="font-size:11px;color:var(--rose-mid);font-weight:600;">📍 {{ doc.distance_km }} km away</span>
           {% endif %}
         </div>
-      </div>
 
-      <svg width="16" height="16" fill="none" stroke="var(--ink-3)" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:4px;">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-      </svg>
-    </a>
+        <button onclick="openRequest('{{ doc.pk }}', 'Dr. {{ doc.full_name|escapejs }}')"
+                style="margin-top:10px;padding:7px 16px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+                       color:white;border:none;border-radius:9px;font-size:12px;font-weight:600;
+                       cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+          🩺 Request Consultation
+        </button>
+      </div>
+    </div>
     {% endfor %}
 
   {% else %}
@@ -171,22 +174,55 @@
     </div>
   {% endif %}
 
-  {# ── Are you a doctor? ── #}
-  <div style="background:linear-gradient(135deg,var(--rose-pale),#fdf2f8);border:1px solid var(--rose-border);border-radius:14px;padding:18px 20px;margin-top:24px;display:flex;align-items:center;gap:14px;">
-    <span style="font-size:28px;flex-shrink:0;">🩺</span>
-    <div style="flex:1;">
-      <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0 0 3px;">Are you a doctor?</p>
-      <p style="font-size:12px;color:var(--ink-3);margin:0;">Join MamaCare and connect with new mothers who need your expertise.</p>
-    </div>
-    <a href="{% url 'physicians:physician_register' %}"
-       style="font-size:12px;font-weight:600;color:var(--rose-mid);text-decoration:none;background:var(--surface);border:1px solid var(--rose-border);border-radius:8px;padding:7px 12px;white-space:nowrap;">
-      Register →
-    </a>
-  </div>
+</div>
 
+{# ── Request Consultation Modal ── #}
+<div id="reqModal" style="display:none;position:fixed;inset:0;background:rgba(253,248,249,0.92);backdrop-filter:blur(8px);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:20px;padding:26px 22px;width:min(420px,calc(100vw - 28px));box-shadow:0 8px 40px rgba(190,18,60,.15);position:relative;">
+    <button onclick="closeRequest()" style="position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--ink-3);">✕</button>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--rose-deep);margin:0 0 4px;">Request Consultation</h3>
+    <p id="reqDoctorName" style="font-size:13px;color:var(--ink-3);margin:0 0 16px;"></p>
+    <form id="reqForm" method="post" action="{% url 'consultations:request' %}">
+      {% csrf_token %}
+      <input type="hidden" name="physician_id" id="reqPhysicianId">
+      <input type="hidden" name="severity" value="moderate">
+      <input type="hidden" name="specialist" value="pediatrician">
+      <input type="hidden" name="conv_id" value="">
+      <input type="hidden" name="child_id" value="">
+      <input type="hidden" name="lat" id="reqLat" value="">
+      <input type="hidden" name="lon" id="reqLon" value="">
+      <label style="display:block;font-size:12px;font-weight:600;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">
+        Describe your concern
+      </label>
+      <textarea name="symptoms" rows="4" required
+                placeholder="e.g. My baby has had a fever since yesterday and is not feeding well…"
+                style="width:100%;padding:10px 12px;border:1.5px solid var(--rose-border);border-radius:10px;background:var(--rose-pale);color:var(--ink);font-size:13.5px;font-family:'Plus Jakarta Sans',sans-serif;outline:none;resize:vertical;transition:border-color .15s;"
+                onfocus="this.style.borderColor='var(--rose-mid)'"
+                onblur="this.style.borderColor='var(--rose-border)'"></textarea>
+      <button type="submit"
+              style="margin-top:12px;width:100%;padding:12px;background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;">
+        Send Request 🩺
+      </button>
+    </form>
+  </div>
 </div>
 
 <script>
+function openRequest(doctorId, doctorName) {
+  document.getElementById('reqPhysicianId').value = doctorId;
+  document.getElementById('reqDoctorName').textContent = doctorName;
+  document.getElementById('reqModal').style.display = 'flex';
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      document.getElementById('reqLat').value = pos.coords.latitude;
+      document.getElementById('reqLon').value = pos.coords.longitude;
+    }, function(){}, { timeout: 5000 });
+  }
+}
+function closeRequest() {
+  document.getElementById('reqModal').style.display = 'none';
+}
+
 function locateMe() {
   const btn  = document.getElementById('locateText');
   const orig = btn.textContent;

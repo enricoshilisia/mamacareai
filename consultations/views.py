@@ -23,8 +23,11 @@ def _find_doctors(specialist, lat=None, lon=None, mother_city=None):
     """Return up to 3 suitable doctors, sorted by distance or city match."""
     qs = Physician.objects.filter(status="approved", is_available=True)
     if specialist:
-        qs = qs.filter(specialization=specialist)
-    doctors = list(qs)
+        filtered = list(qs.filter(specialization=specialist))
+        # Fall back to all approved doctors if none match the specialist
+        doctors = filtered if filtered else list(qs)
+    else:
+        doctors = list(qs)
 
     if lat is not None and lon is not None:
         try:
@@ -102,48 +105,76 @@ def assess_cry(request):
 @login_required
 def assess(request, conv_id):
     """
-    GET consultations/assess/<conv_id>/?lat=...&lon=...
+    GET consultations/assess/<conv_id>/?lat=...&lon=...&force=1
     Assess severity from conversation and return JSON with top doctors.
     """
-    conv = get_object_or_404(Conversation, id=conv_id, mother=request.user)
+    try:
+        conv = get_object_or_404(Conversation, id=conv_id, mother=request.user)
 
-    result = assess_severity(conv)
-    severity  = result["severity"]
-    symptoms  = result["symptoms"]
-    specialist = result["specialist"]
+        result = assess_severity(conv)
+        severity   = result["severity"]
+        symptoms   = result["symptoms"]
+        specialist = result["specialist"]
 
-    # Only suggest doctors if moderate or above
-    doctors_data = []
-    if _severity_order(severity) >= 1:  # moderate+
-        lat = request.GET.get("lat")
-        lon = request.GET.get("lon")
-        mother = request.user
-        doctors = _find_doctors(specialist, lat=lat, lon=lon, mother_city=getattr(mother, "city", None))
+        force = request.GET.get("force") == "1"
+        lat   = request.GET.get("lat")
+        lon   = request.GET.get("lon")
 
-        for d in doctors:
-            dist = None
-            if lat and lon:
-                try:
-                    dist = round(d.distance_from(float(lat), float(lon)), 1)
-                except (ValueError, TypeError):
-                    pass
-            doctors_data.append({
-                "id":             str(d.id),
-                "name":           d.full_name,
-                "specialization": d.get_specialization_display(),
-                "hospital":       d.hospital,
-                "city":           d.city,
-                "distance_km":    dist,
-            })
+        # Always show doctors when forced; otherwise only moderate+
+        doctors_data = []
+        if force or _severity_order(severity) >= 1:
+            doctors = _find_doctors(specialist, lat=lat, lon=lon,
+                                    mother_city=getattr(request.user, "city", None))
+            for d in doctors:
+                dist = None
+                if lat and lon:
+                    try:
+                        dist = round(d.distance_from(float(lat), float(lon)), 1)
+                    except (ValueError, TypeError):
+                        pass
+                doctors_data.append({
+                    "id":             str(d.id),
+                    "name":           d.full_name,
+                    "specialization": d.get_specialization_display(),
+                    "hospital":       d.hospital,
+                    "city":           d.city,
+                    "distance_km":    dist,
+                })
 
-    return JsonResponse({
-        "severity":   severity,
-        "symptoms":   symptoms,
-        "specialist": specialist,
-        "doctors":    doctors_data,
-        "conv_id":    str(conv_id),
-        "child_id":   str(conv.child_id) if conv.child_id else "",
-    })
+        return JsonResponse({
+            "severity":   severity,
+            "symptoms":   symptoms,
+            "specialist": specialist,
+            "doctors":    doctors_data,
+            "conv_id":    str(conv_id),
+            "child_id":   str(conv.child_id) if conv.child_id else "",
+        })
+
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("assess view error: %s", exc)
+        # Fallback: return all available doctors without AI assessment
+        doctors_data = []
+        try:
+            for d in _find_doctors("pediatrician"):
+                doctors_data.append({
+                    "id":             str(d.id),
+                    "name":           d.full_name,
+                    "specialization": d.get_specialization_display(),
+                    "hospital":       d.hospital,
+                    "city":           d.city,
+                    "distance_km":    None,
+                })
+        except Exception:
+            pass
+        return JsonResponse({
+            "severity":   "moderate",
+            "symptoms":   "Please describe your concern to the doctor.",
+            "specialist": "pediatrician",
+            "doctors":    doctors_data,
+            "conv_id":    str(conv_id),
+            "child_id":   "",
+        })
 
 
 @login_required
