@@ -278,6 +278,14 @@
     #pg-bar.done { transform: scaleX(1); opacity: 0; transition: transform 0.18s ease, opacity 0.3s ease 0.08s; }
   </style>
 
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#f43f5e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MamaCare">
+  <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
   {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -548,5 +556,10 @@
 </script>
 
 {% block extra_scripts %}{% endblock %}
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  }
+</script>
 </body>
 </html>

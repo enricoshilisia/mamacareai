@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#f43f5e"/>
+
+  <!-- Soft inner glow -->
+  <rect width="512" height="512" rx="112" fill="url(#grad)" opacity="0.4"/>
+  <defs>
+    <radialGradient id="grad" cx="40%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#be123c" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Mother silhouette body -->
+  <ellipse cx="256" cy="340" rx="110" ry="90" fill="#ffffff" opacity="0.15"/>
+  <path d="M180 310 Q180 260 256 250 Q332 260 332 310 L340 420 H172 Z" fill="#fff" opacity="0.95"/>
+
+  <!-- Mother head -->
+  <circle cx="256" cy="200" r="54" fill="#fff" opacity="0.95"/>
+
+  <!-- Hair -->
+  <path d="M202 190 Q200 148 256 145 Q312 148 310 190 Q290 165 256 163 Q222 165 202 190Z" fill="#fda4af"/>
+
+  <!-- Baby bump / heart shape -->
+  <path d="M224 340 Q224 310 256 305 Q288 310 288 340 Q288 368 256 382 Q224 368 224 340Z" fill="#fda4af"/>
+
+  <!-- Small heart on chest -->
+  <path d="M245 292 Q245 283 252 283 Q256 283 256 287 Q256 283 260 283 Q267 283 267 292 Q267 300 256 308 Q245 300 245 292Z" fill="#f43f5e"/>
+
+  <!-- Medical cross -->
+  <rect x="244" y="420" width="24" height="52" rx="6" fill="#fff" opacity="0.9"/>
+  <rect x="228" y="436" width="56" height="20" rx="6" fill="#fff" opacity="0.9"/>
+
+  <!-- Sparkle dots -->
+  <circle cx="148" cy="178" r="7" fill="#fda4af" opacity="0.8"/>
+  <circle cx="364" cy="210" r="5" fill="#fda4af" opacity="0.6"/>
+  <circle cx="155" cy="240" r="4" fill="#fff" opacity="0.5"/>
+  <circle cx="370" cy="160" r="9" fill="#fff" opacity="0.3"/>
+</svg>

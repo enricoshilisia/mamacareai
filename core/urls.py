@@ -19,12 +19,16 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse
+from django.conf import settings as django_settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Silence browser auto-requests
-    path('service-worker.js', lambda _: HttpResponse('', content_type='application/javascript')),
+    path('service-worker.js', lambda _: HttpResponse(
+        open(django_settings.BASE_DIR / 'static/sw.js').read(),
+        content_type='application/javascript'
+    )),
     path('.well-known/appspecific/com.chrome.devtools.json', lambda _: HttpResponse('{}', content_type='application/json')),
 
 
