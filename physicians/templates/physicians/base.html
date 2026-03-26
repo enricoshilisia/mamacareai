@@ -581,7 +581,10 @@
       if (existing) return; // already subscribed on this device
 
       const perm = await Notification.requestPermission();
-      if (perm !== 'granted') return;
+      if (perm !== 'granted') {
+        _showPushBanner();
+        return;
+      }
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
@@ -593,7 +596,18 @@
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
         body:    JSON.stringify(sub.toJSON()),
       });
-    } catch (e) { /* silently ignore — non-critical */ }
+      console.log('[MamaCare] Push notifications registered.');
+    } catch (e) { console.warn('[MamaCare] Push registration error:', e); }
+  }
+
+  function _showPushBanner() {
+    if (document.getElementById('_push-banner')) return;
+    var b = document.createElement('div');
+    b.id = '_push-banner';
+    b.style.cssText = 'position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:999;background:#1e3a5f;color:white;font-size:12.5px;font-weight:600;padding:10px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:calc(100vw - 40px);text-align:center;';
+    b.innerHTML = '🔔 Enable notifications to receive consultation alerts — check your browser settings.';
+    document.body.appendChild(b);
+    setTimeout(function(){ b.remove(); }, 8000);
   }
 
   // Delay slightly so page load isn't blocked

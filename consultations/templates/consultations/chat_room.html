@@ -4,25 +4,27 @@
 
 {% block extra_head %}
 <style>
+  :root {
   {% if viewer == 'doctor' %}
-  --chat-primary:        var(--blue-mid, #2563eb);
-  --chat-primary-deep:   var(--blue-deep, #1d4ed8);
-  --chat-pale:           var(--blue-pale, #eff6ff);
-  --chat-border:         var(--blue-border, #dbeafe);
-  --chat-blush:          var(--blue-light, #bfdbfe);
-  --bubble-self:         linear-gradient(135deg,#2563eb,#1d4ed8);
-  --bubble-other-bg:     #f8faff;
-  --bubble-other-border: #dbeafe;
+    --chat-primary:        #2563eb;
+    --chat-primary-deep:   #1d4ed8;
+    --chat-pale:           #eff6ff;
+    --chat-border:         #dbeafe;
+    --chat-blush:          #bfdbfe;
+    --bubble-self:         linear-gradient(135deg,#2563eb,#1d4ed8);
+    --bubble-other-bg:     #f8faff;
+    --bubble-other-border: #dbeafe;
   {% else %}
-  --chat-primary:        var(--rose-mid, #e11d48);
-  --chat-primary-deep:   var(--rose-deep, #be123c);
-  --chat-pale:           var(--rose-pale, #fff1f2);
-  --chat-border:         var(--rose-border, #fde8ec);
-  --chat-blush:          var(--rose-blush, #fecdd3);
-  --bubble-self:         linear-gradient(135deg,#e11d48,#be123c);
-  --bubble-other-bg:     #ffffff;
-  --bubble-other-border: #fde8ec;
+    --chat-primary:        #e11d48;
+    --chat-primary-deep:   #be123c;
+    --chat-pale:           #fff1f2;
+    --chat-border:         #fde8ec;
+    --chat-blush:          #fecdd3;
+    --bubble-self:         linear-gradient(135deg,#e11d48,#be123c);
+    --bubble-other-bg:     #ffffff;
+    --bubble-other-border: #fde8ec;
   {% endif %}
+  }
 
   .consult-shell {
     display: flex; flex-direction: column;
@@ -319,6 +321,7 @@
 
   // ── Poll every 3 s ──
   function pollMessages() {
+    if (!navigator.onLine) return;  // skip silently when offline
     var url = POLL_URL + (lastTs ? '?after=' + encodeURIComponent(lastTs) : '');
     fetch(url)
       .then(function(r){ return r.json(); })
@@ -337,5 +340,6 @@
   }
 
   setInterval(pollMessages, 3000);
+  window.addEventListener('online', pollMessages);  // catch up immediately on reconnect
 </script>
 {% endblock %}

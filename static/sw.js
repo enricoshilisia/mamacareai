@@ -1,8 +1,13 @@
-const CACHE = 'mamacare-v2';
+const CACHE = 'mamacare-v4';
 
 const STATIC_ASSETS = [
   '/',
   '/static/manifest.json',
+  '/static/js/marked.min.js',
+  '/static/icons/icon-48.png',
+  '/static/icons/icon-72.png',
+  '/static/icons/icon-192.png',
+  '/static/icons/icon-512.png',
 ];
 
 // Install — cache core assets
@@ -25,7 +30,11 @@ self.addEventListener('activate', e => {
 
 // ── Push notifications ──────────────────────────────────────────────────────
 self.addEventListener('push', e => {
-  const data = e.data ? e.data.json() : {};
+  let data = {};
+  if (e.data) {
+    try { data = e.data.json(); }
+    catch (_) { data = { title: 'MamaCare', body: e.data.text() }; }
+  }
   e.waitUntil(
     self.registration.showNotification(data.title || 'MamaCare', {
       body:  data.body  || '',

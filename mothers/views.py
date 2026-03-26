@@ -138,6 +138,8 @@ def logout_view(request):
 
 @login_required
 def home(request):
+    if request.user.is_doctor:
+        return redirect("physicians:physician_home")
     mother = request.user
     children = mother.children.filter(is_active=True).order_by("date_of_birth")
     context = {

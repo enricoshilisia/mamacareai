@@ -81,10 +81,12 @@
     </div>
   </div>
 
-  <p style="font-size:12px;color:var(--ink-3);margin:0 0 8px;">Symptoms shared with doctor:</p>
-  <p style="font-size:13px;color:var(--ink-2);line-height:1.6;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:10px;padding:12px;text-align:left;margin-bottom:24px;">
-    {{ consultation.symptoms }}
-  </p>
+  <div style="background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:10px;padding:12px 14px;margin-bottom:24px;display:flex;align-items:center;gap:10px;">
+    <span style="font-size:20px;">📋</span>
+    <p style="font-size:13px;color:var(--ink-2);margin:0;line-height:1.55;">
+      Your recent chat{% if consultation.child %} about {{ consultation.child.name }}{% endif %} has been summarised and shared with the doctor.
+    </p>
+  </div>
 
   <div id="action-area">
     {% if consultation.status == 'accepted' %}
@@ -114,11 +116,11 @@
 
   function checkStatus() {
     if (STATUS === 'accepted' || STATUS === 'declined') return;
+    if (!navigator.onLine) return;  // skip silently when offline
     fetch(POLL_URL)
       .then(function(r){ return r.json(); })
       .then(function(data){
         if (data.consultation_status && data.consultation_status !== STATUS) {
-          // Status changed — redirect
           if (data.consultation_status === 'accepted') {
             window.location.href = CHAT_URL;
           } else {
@@ -131,6 +133,8 @@
 
   if (STATUS === 'pending') {
     setInterval(checkStatus, 5000);
+    // Resume check immediately when coming back online
+    window.addEventListener('online', checkStatus);
   }
 </script>
 {% endblock %}

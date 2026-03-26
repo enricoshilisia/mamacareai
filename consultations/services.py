@@ -12,27 +12,103 @@ from chat.services import _client
 logger = logging.getLogger(__name__)
 
 
+def _build_child_profile(child) -> str:
+    """Return a formatted profile block for a child."""
+    if not child:
+        return "No child profile linked to this conversation."
+    lines = [
+        f"Name: {child.name}",
+        f"Age: {child.age_display}",
+        f"Gender: {child.gender_display}",
+    ]
+    if child.blood_group and child.blood_group != "unknown":
+        lines.append(f"Blood group: {child.blood_group}")
+    if child.birth_weight_kg:
+        lines.append(f"Birth weight: {child.birth_weight_kg} kg")
+    if child.birth_hospital:
+        lines.append(f"Born at: {child.birth_hospital}")
+    if child.allergies:
+        lines.append(f"Allergies / conditions: {child.allergies}")
+    if child.notes:
+        lines.append(f"Notes: {child.notes}")
+    if child.pediatrician_name:
+        lines.append(f"Regular pediatrician: {child.pediatrician_name}"
+                     + (f" ({child.pediatrician_phone})" if child.pediatrician_phone else ""))
+    return "\n".join(lines)
+
+
+def _build_chat_history(conversation) -> str:
+    """
+    Return the last 30 messages of the current conversation,
+    plus a brief summary (first user message) of up to 4 previous
+    conversations about the same child.
+    """
+    from chat.models import Conversation  # local import to avoid circular
+
+    lines = []
+
+    # Previous conversations about the same child (most recent 4, excluding current)
+    if conversation.child_id:
+        past = (
+            Conversation.objects
+            .filter(child_id=conversation.child_id)
+            .exclude(pk=conversation.pk)
+            .order_by("-updated_at")[:4]
+        )
+        if past:
+            lines.append("── Previous conversations ──")
+            for pc in past:
+                first_msg = pc.messages.order_by("created_at").first()
+                if first_msg:
+                    lines.append(f"[{pc.updated_at.strftime('%d %b %Y')}] {first_msg.content[:200]}")
+            lines.append("")
+
+    # Current conversation (last 30 messages)
+    lines.append("── Current conversation ──")
+    msgs = list(conversation.messages.order_by("-created_at")[:30])
+    msgs.reverse()
+    for m in msgs:
+        role = "Mother" if m.role == "user" else "MamaCare AI"
+        lines.append(f"{role}: {m.content}")
+
+    return "\n".join(lines)
+
+
 def assess_severity(conversation) -> dict:
     """
-    Sends the last 15 messages from a Conversation to the AI and asks it to
-    assess: severity (mild/moderate/severe/critical), main symptoms, and
-    recommended specialist type.
+    Builds a comprehensive clinical report for the doctor using:
+    - Child's full profile (age, blood group, allergies, etc.)
+    - Current conversation history
+    - Recent past conversations about the same child
 
-    Returns a dict: {severity, symptoms, specialist}
+    Returns: {severity, symptoms (full report for doctor), specialist}
     """
-    msgs = list(conversation.messages.order_by("-created_at")[:15])
-    msgs.reverse()
+    child = conversation.child
+    mother = conversation.mother
 
-    history = [{"role": m.role, "content": m.content} for m in msgs]
+    child_profile = _build_child_profile(child)
+    chat_history  = _build_chat_history(conversation)
 
     system_prompt = (
-        "You are a medical triage assistant. "
-        "Based on this conversation between a mother and a care AI about her child's symptoms, assess:\n"
-        "1) severity — choose ONE of: mild, moderate, severe, critical\n"
-        "2) main symptoms — describe in 2-3 clear sentences\n"
-        "3) recommended specialist type — choose ONE of: pediatrician, neonatologist, gp, lactation, nutritionist\n\n"
-        "Return ONLY valid JSON with no markdown, no code fences, no extra text:\n"
-        '{"severity": "...", "symptoms": "...", "specialist": "..."}'
+        "You are a medical triage assistant preparing a handover report for a doctor.\n\n"
+        "Using the child's profile and the conversation history provided, produce:\n"
+        "1. severity — ONE of: mild, moderate, severe, critical\n"
+        "2. report — a structured clinical summary for the doctor in this exact format:\n"
+        "   PATIENT: <name, age, gender>\n"
+        "   PROFILE: <blood group, birth weight, known allergies/conditions>\n"
+        "   PRESENTING CONCERN: <what the mother is worried about — 2-3 sentences>\n"
+        "   HISTORY: <relevant past concerns from previous conversations, if any>\n"
+        "   ASSESSMENT: <brief clinical impression and suggested next steps>\n"
+        "   MOTHER: <mother's name and location>\n"
+        "3. specialist — ONE of: pediatrician, neonatologist, gp, lactation, nutritionist\n\n"
+        "Return ONLY valid JSON, no markdown:\n"
+        '{"severity": "...", "report": "...", "specialist": "..."}'
+    )
+
+    user_content = (
+        f"=== CHILD PROFILE ===\n{child_profile}\n\n"
+        f"=== MOTHER ===\n{mother.full_name}, {getattr(mother, 'city', '')} {getattr(mother, 'country', '')}\n\n"
+        f"=== CONVERSATION ===\n{chat_history}"
     )
 
     try:
@@ -40,36 +116,43 @@ def assess_severity(conversation) -> dict:
             model=settings.AZURE_OPENAI_DEPLOYMENT,
             messages=[
                 {"role": "system", "content": system_prompt},
-                *history,
+                {"role": "user",   "content": user_content},
             ],
-            max_completion_tokens=400,
+            max_completion_tokens=800,
             temperature=0.3,
         )
         raw = response.choices[0].message.content.strip()
-        # Strip possible markdown fences
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
             raw = raw.strip()
         result = json.loads(raw)
-        # Validate and normalise
-        severity = result.get("severity", "mild").lower()
+
+        severity = result.get("severity", "moderate").lower()
         if severity not in ("mild", "moderate", "severe", "critical"):
-            severity = "mild"
-        specialist = result.get("specialist", "gp").lower()
+            severity = "moderate"
+        specialist = result.get("specialist", "pediatrician").lower()
         if specialist not in ("pediatrician", "neonatologist", "gp", "lactation", "nutritionist"):
-            specialist = "gp"
+            specialist = "pediatrician"
+
         return {
             "severity":   severity,
-            "symptoms":   result.get("symptoms", "Symptoms could not be assessed."),
+            "symptoms":   result.get("report", "Clinical report could not be generated."),
             "specialist": specialist,
         }
     except Exception as exc:
         logger.exception("assess_severity failed: %s", exc)
+        # Fallback: build a plain-text report without AI
+        fallback = (
+            f"PATIENT: {child.name if child else 'Unknown'}\n"
+            f"PROFILE: {child_profile}\n"
+            f"MOTHER: {mother.full_name}, {getattr(mother, 'city', '')} {getattr(mother, 'country', '')}\n"
+            f"NOTE: AI assessment unavailable. Please review the conversation history."
+        )
         return {
             "severity":   "moderate",
-            "symptoms":   "Unable to assess symptoms automatically. Please describe the child's condition.",
+            "symptoms":   fallback,
             "specialist": "pediatrician",
         }
 

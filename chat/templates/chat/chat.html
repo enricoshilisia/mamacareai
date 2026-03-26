@@ -410,9 +410,15 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="/static/js/marked.min.js"></script>
 <script>
-  marked.setOptions({ breaks: true, gfm: true });
+  if (typeof marked !== 'undefined') marked.setOptions({ breaks: true, gfm: true });
+
+  function safeParse(text) {
+    if (!text) return '';
+    if (typeof marked !== 'undefined') return marked.parse(text);
+    return escapeHtml(text).replace(/\n/g, '<br>');
+  }
   document.querySelectorAll('.toast').forEach(t => t.remove());
 
   const STREAM_URL   = "{% url 'chat:stream_reply' conversation.id %}";
@@ -454,7 +460,7 @@
       // Auto-open after a short delay so the message renders first
       setTimeout(function(){ openConsultModal(true); }, 600);
     }
-    return marked.parse(clean) + extra;
+    return safeParse(clean) + extra;
   }
 
   function renderStoredMessage(role, content, time) {
@@ -485,7 +491,7 @@
     const now     = new Date().toLocaleTimeString('en-KE', { hour:'2-digit', minute:'2-digit', hour12: false });
     const row     = makeRow(role);
     const content_el = row.querySelector('.msg-content');
-    const html    = content ? (role === 'assistant' ? marked.parse(content) : escapeHtml(content).replace(/\n/g,'<br>')) : '';
+    const html    = content ? (role === 'assistant' ? safeParse(content) : escapeHtml(content).replace(/\n/g,'<br>')) : '';
     content_el.innerHTML = `<div class="msg-bubble ${role}">${html}</div><div class="msg-time">${now}</div>`;
     messagesEl.insertBefore(row, typingEl);
     scrollToBottom();
@@ -528,7 +534,7 @@
               fullText += data.chunk;
               // While streaming, strip tokens; render as buttons when done
               const display = fullText.replace('[RECORD_CRY]', '').replace('[SUGGEST_DOCTOR]', '').trimEnd();
-              aiBubble.innerHTML = marked.parse(display);
+              aiBubble.innerHTML = safeParse(display);
               scrollToBottom();
             }
             if (data.done) {
@@ -674,7 +680,7 @@
         var label=data.cry_type.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
         var confPct=Math.round(data.confidence);
         var seriousBadge=data.is_serious?`<div class="cry-serious-badge">⚠️ Medical attention may be needed</div>`:'';
-        var guidanceHtml=marked.parse(data.guidance||'');
+        var guidanceHtml=safeParse(data.guidance||'');
 
         if(emptyState) emptyState.style.display='none';
         var now=new Date().toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit',hour12:false});
