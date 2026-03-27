@@ -157,11 +157,21 @@ _FALLBACK_VAPID_PUBLIC  = "BOs8yNAsL6OKjqQyzP42Jai4uo1siOTf6RxFApraaCZ8rjz8babtF
 _FALLBACK_VAPID_PRIVATE = "LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUhSay9kaERKZ3BJN2REdmhyN3ZlOGcvODBXNExVQ3lqeXlRTk9QS2ZkSlRvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFNnp6STBDd3ZvNHFPcERMTS9qWWxxTGk2ald5STVOL3BIRVVDbXRwb0pueXVQUHh0cHUwVwpCVFVmMDVDRytNcUNRM1p0dXZhNkhDT2FsdEhKOTBQRGlnPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo"
 
 VAPID_PUBLIC_KEY  = env("VAPID_PUBLIC_KEY", default=_FALLBACK_VAPID_PUBLIC)
-_priv_b64         = env("VAPID_PRIVATE_KEY_B64", default=_FALLBACK_VAPID_PRIVATE)
-try:
-    VAPID_PRIVATE_KEY = _b64.urlsafe_b64decode(_priv_b64 + "==").decode().strip()
-except Exception:
+
+# Support VAPID_PRIVATE_KEY (raw PEM) or VAPID_PRIVATE_KEY_B64 (base64-encoded PEM)
+_raw_pem  = env("VAPID_PRIVATE_KEY", default="")
+_priv_b64 = env("VAPID_PRIVATE_KEY_B64", default="")
+if _raw_pem:
+    # Raw PEM — replace literal \n with real newlines (Azure App Settings strips them)
+    VAPID_PRIVATE_KEY = _raw_pem.replace("\\n", "\n").strip()
+elif _priv_b64:
+    try:
+        VAPID_PRIVATE_KEY = _b64.urlsafe_b64decode(_priv_b64 + "==").decode().strip()
+    except Exception:
+        VAPID_PRIVATE_KEY = _b64.urlsafe_b64decode(_FALLBACK_VAPID_PRIVATE + "==").decode().strip()
+else:
     VAPID_PRIVATE_KEY = _b64.urlsafe_b64decode(_FALLBACK_VAPID_PRIVATE + "==").decode().strip()
+
 VAPID_ADMIN_EMAIL = env("VAPID_ADMIN_EMAIL", default="admin@mamacare.com")
 
 # ─── Production security hardening ────────────────────────────────────────────

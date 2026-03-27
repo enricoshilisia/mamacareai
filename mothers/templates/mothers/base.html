@@ -760,6 +760,81 @@
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js').catch(() => {});
   }
+
+  {% if user.is_authenticated and VAPID_PUBLIC_KEY %}
+  function _urlB64ToUint8(b64) {
+    const pad = '='.repeat((4 - b64.length % 4) % 4);
+    const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  async function _saveSubToServer(sub) {
+    try {
+      await fetch("{% url 'notifications:subscribe' %}", {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body:    JSON.stringify(sub.toJSON()),
+      });
+    } catch (e) { console.warn('[MamaCare] Failed to save push subscription:', e); }
+  }
+
+  async function _registerPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (Notification.permission === 'granted') {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) { await _saveSubToServer(existing); return; }
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: _urlB64ToUint8('{{ VAPID_PUBLIC_KEY }}'),
+        });
+        await _saveSubToServer(sub);
+        _hideNotifBtn();
+        return;
+      }
+      if (Notification.permission === 'denied') { _showNotifBtn(true); return; }
+      _showNotifBtn(false);
+    } catch (e) { console.warn('[MamaCare] Push setup error:', e); }
+  }
+
+  async function _requestPushFromGesture() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { _showNotifBtn(true); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64ToUint8('{{ VAPID_PUBLIC_KEY }}'),
+      });
+      await _saveSubToServer(sub);
+      _hideNotifBtn();
+    } catch (e) { console.warn('[MamaCare] Push request error:', e); }
+  }
+
+  function _showNotifBtn(blocked) {
+    if (document.getElementById('_push-btn')) return;
+    var b = document.createElement('div');
+    b.id = '_push-btn';
+    b.style.cssText = 'position:fixed;bottom:74px;left:50%;transform:translateX(-50%);z-index:1000;background:#be123c;color:white;font-size:13px;font-weight:600;padding:11px 20px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.35);max-width:calc(100vw - 32px);text-align:center;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;';
+    if (blocked) {
+      b.innerHTML = '🔔 Open browser settings to allow notifications';
+      setTimeout(function(){ b.remove(); }, 10000);
+    } else {
+      b.innerHTML = '🔔 <span>Tap to enable health alerts</span>';
+      b.onclick = function() { b.remove(); _requestPushFromGesture(); };
+    }
+    document.body.appendChild(b);
+  }
+
+  function _hideNotifBtn() {
+    var b = document.getElementById('_push-btn');
+    if (b) b.remove();
+  }
+
+  setTimeout(_registerPush, 1500);
+  {% endif %}
 </script>
 </body>
 </html>
