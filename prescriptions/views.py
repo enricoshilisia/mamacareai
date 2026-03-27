@@ -63,7 +63,7 @@ def _ai_suggest_drugs(consultation):
             {"role": "user",   "content": user_prompt},
         ],
         temperature=0.2,
-        max_tokens=800,
+        max_completion_tokens=800,
     )
     raw = response.choices[0].message.content.strip()
     return json.loads(raw)
