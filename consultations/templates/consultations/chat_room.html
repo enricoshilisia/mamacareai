@@ -169,16 +169,18 @@
   /* ── Prescription modal ── */
   .rx-overlay {
     display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,.45); z-index: 500;
-    align-items: flex-end; justify-content: center;
+    background: rgba(0,0,0,.55); z-index: 500;
+    align-items: center; justify-content: center;
+    padding: 16px;
   }
   .rx-overlay.open { display: flex; }
   .rx-modal {
-    background: white; border-radius: 20px 20px 0 0;
-    width: 100%; max-width: 560px;
+    background: white; border-radius: 16px;
+    width: 100%; max-width: 520px;
     display: flex; flex-direction: column;
     overflow: hidden;
-    /* height set by JS on open so it always fits the real visible viewport */
+    box-shadow: 0 24px 60px rgba(0,0,0,.25);
+    /* height set by JS on open */
   }
   .rx-modal-header {
     flex-shrink: 0; padding: 20px 20px 0;
@@ -187,7 +189,7 @@
     flex: 1; min-height: 0;
     overflow-y: auto; -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
+    padding: 0 20px 24px;
   }
   .rx-modal-footer { display: none; }
   .rx-modal-title { font-size: 16px; font-weight: 700; color: #1e3a5f; margin-bottom: 4px; }
@@ -492,12 +494,14 @@
   var CSRF_TOKEN_RX  = "{{ csrf_token }}";
   var _rxDrugs = [];  // current drug list in modal
 
-  function openRxModal() {
-    // Use window.innerHeight so the modal never exceeds the real visible screen
+  function _setRxModalHeight() {
+    // Center-float modal: fill 90% of visible height minus overlay padding (32px total)
     var modal = document.querySelector('.rx-modal');
-    modal.style.height = Math.floor(window.innerHeight * 0.92) + 'px';
+    modal.style.height = Math.min(Math.floor(window.innerHeight * 0.90) - 32, 680) + 'px';
+  }
+  function openRxModal() {
+    _setRxModalHeight();
     document.getElementById('rxOverlay').classList.add('open');
-    // Scroll modal content to top every time it opens
     var scroll = document.querySelector('.rx-modal-scroll');
     if (scroll) scroll.scrollTop = 0;
     if (_rxDrugs.length === 0) renderDrugList([]);
@@ -507,8 +511,7 @@
   }
   window.addEventListener('resize', function() {
     if (document.getElementById('rxOverlay').classList.contains('open')) {
-      document.querySelector('.rx-modal').style.height =
-        Math.floor(window.innerHeight * 0.92) + 'px';
+      _setRxModalHeight();
     }
   });
 
