@@ -1,6 +1,9 @@
 import json
+import logging
 import math
 from datetime import datetime, timezone as dt_timezone
+
+logger = logging.getLogger(__name__)
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -276,8 +279,8 @@ def request_consultation(request):
             body=f"{mother.first_name} needs help with {child_name}. Tap to respond.",
             url="/consultations/inbox/",
         )
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("New request notification failed: %s", e)
 
     return redirect("consultations:waiting", pk=consultation.pk)
 
@@ -458,8 +461,8 @@ def respond(request, pk):
                 body=f"{doctor_name} has accepted your consultation for {child_name}. Tap to chat.",
                 url=f"/consultations/{consultation.pk}/chat/",
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Accept notification failed: %s", e)
         return redirect("consultations:chat_room", pk=consultation.pk)
 
     elif action == "decline":
@@ -475,8 +478,8 @@ def respond(request, pk):
                 body=f"{doctor_name} is unavailable for {child_name}'s consultation. Please try another doctor.",
                 url="/doctors/",
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Decline notification failed: %s", e)
         return redirect("consultations:inbox")
 
     return redirect("consultations:inbox")

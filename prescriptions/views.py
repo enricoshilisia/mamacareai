@@ -1,8 +1,11 @@
 import json
+import logging
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+logger = logging.getLogger(__name__)
 from django.views.decorators.http import require_POST
 
 from consultations.models import Consultation
@@ -132,8 +135,8 @@ def confirm_prescription(request, pk):
                 body=f"{doctor_name} has sent a prescription for {child_name}. Tap to view.",
                 url=f"/consultations/{consultation.pk}/chat/",
             )
-        except Exception:
-            pass
+        except Exception as notify_err:
+            logger.warning("Failed to send prescription notification: %s", notify_err)
 
         return JsonResponse({'ok': True, 'prescription_id': str(rx.pk)})
 
