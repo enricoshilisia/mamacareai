@@ -266,11 +266,11 @@ def request_consultation(request):
         mother_lon=lon if lon else None,
     )
 
-    # Notify the doctor via Web Push
+    # In-app + push notification to doctor
     try:
-        from notifications.services import send_push_to_user
+        from notifications.services import notify_user
         child_name = child.name if child else "a baby"
-        send_push_to_user(
+        notify_user(
             physician.user,
             title="New Consultation Request 🩺",
             body=f"{mother.first_name} needs help with {child_name}. Tap to respond.",
