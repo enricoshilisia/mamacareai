@@ -129,7 +129,101 @@
     text-decoration: none; margin-left: 8px; transition: background .12s;
   }
   .complete-btn:hover { background: #bbf7d0; }
+  .rx-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    color: #1d4ed8; border-radius: 8px; padding: 6px 14px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    margin-left: 8px; transition: background .12s;
+  }
+  .rx-btn:hover { background: #dbeafe; }
   {% endif %}
+
+  /* ── Prescription card ── */
+  .rx-card {
+    margin: 8px 18px; border-radius: 14px; overflow: hidden;
+    border: 1.5px solid #bfdbfe; background: #f0f7ff; flex-shrink: 0;
+  }
+  .rx-card-header {
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    color: white; padding: 10px 16px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+  .rx-card-body { padding: 12px 16px; }
+  .rx-item {
+    padding: 8px 0; border-bottom: 1px solid #dbeafe;
+    display: flex; flex-direction: column; gap: 2px;
+  }
+  .rx-item:last-child { border-bottom: none; }
+  .rx-drug { font-size: 13.5px; font-weight: 700; color: #1e3a5f; }
+  .rx-detail { font-size: 12px; color: #475569; }
+  .rx-ai-tag {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    background: #e0f2fe; color: #0369a1; border-radius: 99px;
+    padding: 1px 6px; margin-left: 6px; vertical-align: middle;
+  }
+  .rx-notes { font-size: 12px; color: #475569; margin-top: 8px; font-style: italic; }
+  .rx-footer { font-size: 11px; color: #64748b; padding: 8px 16px; border-top: 1px solid #dbeafe; }
+
+  /* ── Prescription modal ── */
+  .rx-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.45); z-index: 500;
+    align-items: flex-end; justify-content: center;
+  }
+  .rx-overlay.open { display: flex; }
+  .rx-modal {
+    background: white; border-radius: 20px 20px 0 0;
+    width: 100%; max-width: 560px; max-height: 85vh;
+    overflow-y: auto; padding: 20px 20px 32px;
+  }
+  .rx-modal-title { font-size: 16px; font-weight: 700; color: #1e3a5f; margin-bottom: 4px; }
+  .rx-modal-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+  .rx-suggest-btn {
+    width: 100%; padding: 10px; border-radius: 10px;
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    color: white; font-size: 13px; font-weight: 600;
+    border: none; cursor: pointer; margin-bottom: 16px;
+    transition: opacity .15s;
+  }
+  .rx-suggest-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .rx-drug-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+  .rx-drug-card {
+    border: 1.5px solid #dbeafe; border-radius: 12px; padding: 12px;
+    background: #f8faff; cursor: pointer; transition: border-color .15s;
+  }
+  .rx-drug-card.selected { border-color: #2563eb; background: #eff6ff; }
+  .rx-drug-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .rx-drug-card-top input[type=checkbox] { width: 16px; height: 16px; accent-color: #2563eb; flex-shrink: 0; }
+  .rx-drug-name-label { font-size: 13.5px; font-weight: 700; color: #1e3a5f; flex: 1; }
+  .rx-drug-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .rx-drug-fields input, .rx-drug-fields textarea {
+    width: 100%; padding: 5px 8px; border: 1px solid #dbeafe;
+    border-radius: 7px; font-size: 12px; color: #1e3a5f;
+    background: white; font-family: inherit;
+  }
+  .rx-drug-fields textarea { grid-column: 1/-1; resize: none; rows: 2; }
+  .rx-field-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 2px; }
+  .rx-notes-area {
+    width: 100%; padding: 8px 10px; border: 1.5px solid #dbeafe;
+    border-radius: 10px; font-size: 12.5px; font-family: inherit;
+    resize: none; margin-bottom: 12px; color: #1e3a5f;
+  }
+  .rx-confirm-btn {
+    width: 100%; padding: 12px; border-radius: 12px;
+    background: linear-gradient(135deg,#16a34a,#15803d);
+    color: white; font-size: 14px; font-weight: 700;
+    border: none; cursor: pointer; transition: opacity .15s;
+  }
+  .rx-confirm-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .rx-add-custom {
+    width: 100%; padding: 8px; border-radius: 10px;
+    border: 1.5px dashed #bfdbfe; background: transparent;
+    color: #2563eb; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; margin-bottom: 12px; transition: background .12s;
+  }
+  .rx-add-custom:hover { background: #eff6ff; }
 </style>
 {% endblock %}
 
@@ -164,12 +258,15 @@
     </span>
 
     {% if viewer == 'doctor' %}
-    <form method="post" action="{% url 'consultations:complete' pk=consultation.pk %}" style="margin-left:auto;">
-      {% csrf_token %}
-      <button type="submit" class="complete-btn" onclick="return confirm('Mark this consultation as completed?')">
-        ✓ Mark Complete
-      </button>
-    </form>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:0;">
+      <button class="rx-btn" onclick="openRxModal()">💊 Prescribe</button>
+      <form method="post" action="{% url 'consultations:complete' pk=consultation.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="complete-btn" onclick="return confirm('Mark this consultation as completed?')">
+          ✓ Mark Complete
+        </button>
+      </form>
+    </div>
     {% endif %}
   </div>
 
@@ -231,6 +328,9 @@
     {% endfor %}
   </div>
 
+  {# ── Prescription card (shown when confirmed) ── #}
+  <div id="rx-card-area"></div>
+
   {# ── Input ── #}
   <div class="c-input-area">
     <div class="c-input-row">
@@ -246,6 +346,34 @@
   </div>
 
 </div>
+
+{% if viewer == 'doctor' %}
+{# ── Prescription modal ── #}
+<div class="rx-overlay" id="rxOverlay">
+  <div class="rx-modal">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div class="rx-modal-title">💊 Prescribe Medication</div>
+      <button onclick="closeRxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;">✕</button>
+    </div>
+    <div class="rx-modal-sub">AI will suggest drugs based on the consultation. You select, edit, and confirm.</div>
+
+    <button class="rx-suggest-btn" id="rxSuggestBtn" onclick="getSuggestions()">
+      Get AI Drug Suggestions
+    </button>
+
+    <div class="rx-drug-list" id="rxDrugList"></div>
+
+    <button class="rx-add-custom" onclick="addCustomDrug()">+ Add drug manually</button>
+
+    <div class="rx-field-label" style="margin-bottom:6px;">Doctor's notes (optional)</div>
+    <textarea class="rx-notes-area" id="rxNotes" rows="2" placeholder="e.g. Follow up in 3 days if no improvement"></textarea>
+
+    <button class="rx-confirm-btn" id="rxConfirmBtn" onclick="confirmRx()" disabled>
+      Send Prescription to Mother
+    </button>
+  </div>
+</div>
+{% endif %}
 
 <script>
   var SEND_URL   = "{% url 'consultations:send_message' pk=consultation.pk %}";
@@ -341,5 +469,146 @@
 
   setInterval(pollMessages, 3000);
   window.addEventListener('online', pollMessages);  // catch up immediately on reconnect
+
+  // ── Prescription ──────────────────────────────────────────────────────────
+  var RX_SUGGEST_URL = "{% url 'prescriptions:suggest' pk=consultation.pk %}";
+  var RX_CONFIRM_URL = "{% url 'prescriptions:confirm' pk=consultation.pk %}";
+  var RX_GET_URL     = "{% url 'prescriptions:get' pk=consultation.pk %}";
+  var CSRF_TOKEN_RX  = "{{ csrf_token }}";
+  var _rxDrugs = [];  // current drug list in modal
+
+  function openRxModal() {
+    document.getElementById('rxOverlay').classList.add('open');
+    if (_rxDrugs.length === 0) renderDrugList([]);
+  }
+  function closeRxModal() {
+    document.getElementById('rxOverlay').classList.remove('open');
+  }
+
+  async function getSuggestions() {
+    var btn = document.getElementById('rxSuggestBtn');
+    btn.disabled = true; btn.textContent = 'Getting suggestions…';
+    try {
+      var res  = await fetch(RX_SUGGEST_URL, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN_RX, 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      var data = await res.json();
+      if (data.drugs && data.drugs.length > 0) {
+        _rxDrugs = data.drugs.map(function(d){ return Object.assign({}, d, {ai_suggested: true, selected: true}); });
+        renderDrugList(_rxDrugs);
+      } else {
+        btn.textContent = 'No suggestions — add manually';
+      }
+    } catch(e) {
+      btn.textContent = 'AI unavailable — add manually';
+    } finally {
+      btn.disabled = false;
+      updateConfirmBtn();
+    }
+  }
+
+  function renderDrugList(drugs) {
+    var list = document.getElementById('rxDrugList');
+    list.innerHTML = '';
+    drugs.forEach(function(drug, i) {
+      var card = document.createElement('div');
+      card.className = 'rx-drug-card' + (drug.selected !== false ? ' selected' : '');
+      card.id = 'rxCard' + i;
+      card.innerHTML =
+        '<div class="rx-drug-card-top">' +
+          '<input type="checkbox" id="rxCheck' + i + '" ' + (drug.selected !== false ? 'checked' : '') + ' onchange="toggleDrug(' + i + ', this.checked)">' +
+          '<label class="rx-drug-name-label" for="rxCheck' + i + '">' + escHtml(drug.drug_name || '') + (drug.ai_suggested ? '<span class="rx-ai-tag">AI</span>' : '') + '</label>' +
+        '</div>' +
+        '<div class="rx-drug-fields">' +
+          '<div><div class="rx-field-label">Dosage</div><input type="text" value="' + escAttr(drug.dosage || '') + '" oninput="_rxDrugs[' + i + '].dosage=this.value" placeholder="e.g. 5ml"></div>' +
+          '<div><div class="rx-field-label">Frequency</div><input type="text" value="' + escAttr(drug.frequency || '') + '" oninput="_rxDrugs[' + i + '].frequency=this.value" placeholder="e.g. Twice daily"></div>' +
+          '<div><div class="rx-field-label">Duration</div><input type="text" value="' + escAttr(drug.duration || '') + '" oninput="_rxDrugs[' + i + '].duration=this.value" placeholder="e.g. 5 days"></div>' +
+          '<div><div class="rx-field-label">Instructions</div><input type="text" value="' + escAttr(drug.instructions || '') + '" oninput="_rxDrugs[' + i + '].instructions=this.value" placeholder="e.g. After meals"></div>' +
+        '</div>';
+      list.appendChild(card);
+    });
+    updateConfirmBtn();
+  }
+
+  function toggleDrug(i, checked) {
+    _rxDrugs[i].selected = checked;
+    var card = document.getElementById('rxCard' + i);
+    if (card) card.className = 'rx-drug-card' + (checked ? ' selected' : '');
+    updateConfirmBtn();
+  }
+
+  function addCustomDrug() {
+    _rxDrugs.push({ drug_name: 'New Drug', dosage: '', frequency: '', duration: '', instructions: '', ai_suggested: false, selected: true });
+    renderDrugList(_rxDrugs);
+  }
+
+  function updateConfirmBtn() {
+    var selected = _rxDrugs.filter(function(d){ return d.selected !== false; });
+    document.getElementById('rxConfirmBtn').disabled = selected.length === 0;
+  }
+
+  async function confirmRx() {
+    var selected = _rxDrugs.filter(function(d){ return d.selected !== false; });
+    if (selected.length === 0) return;
+    var btn = document.getElementById('rxConfirmBtn');
+    btn.disabled = true; btn.textContent = 'Sending…';
+    try {
+      var res = await fetch(RX_CONFIRM_URL, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN_RX, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: selected,
+          notes: document.getElementById('rxNotes').value,
+        }),
+      });
+      var data = await res.json();
+      if (data.ok) {
+        closeRxModal();
+        loadAndShowRxCard();
+        btn.textContent = 'Send Prescription to Mother';
+      } else {
+        btn.textContent = 'Error — try again';
+        btn.disabled = false;
+      }
+    } catch(e) {
+      btn.textContent = 'Error — try again';
+      btn.disabled = false;
+    }
+  }
+
+  function escAttr(s) { return s.replace(/"/g, '&quot;').replace(/</g,'&lt;'); }
+
+  function renderRxCard(rx) {
+    var area = document.getElementById('rx-card-area');
+    if (!rx) { area.innerHTML = ''; return; }
+    var itemsHtml = rx.items.map(function(item) {
+      return '<div class="rx-item">' +
+        '<div class="rx-drug">' + escHtml(item.drug_name) + (item.ai_suggested ? '<span class="rx-ai-tag">AI suggested</span>' : '') + '</div>' +
+        '<div class="rx-detail"><strong>Dosage:</strong> ' + escHtml(item.dosage) + ' &nbsp;|&nbsp; <strong>Frequency:</strong> ' + escHtml(item.frequency) + ' &nbsp;|&nbsp; <strong>Duration:</strong> ' + escHtml(item.duration) + '</div>' +
+        (item.instructions ? '<div class="rx-detail"><strong>Instructions:</strong> ' + escHtml(item.instructions) + '</div>' : '') +
+      '</div>';
+    }).join('');
+    var notesHtml = rx.notes ? '<div class="rx-notes">Note: ' + escHtml(rx.notes) + '</div>' : '';
+    area.innerHTML =
+      '<div class="rx-card">' +
+        '<div class="rx-card-header">💊 Prescription — confirmed by ' + escHtml(rx.doctor) + '</div>' +
+        '<div class="rx-card-body">' + itemsHtml + notesHtml + '</div>' +
+        '<div class="rx-footer">Issued ' + escHtml(rx.confirmed_at) + ' · Always follow your doctor\'s guidance</div>' +
+      '</div>';
+  }
+
+  function loadAndShowRxCard() {
+    fetch(RX_GET_URL)
+      .then(function(r){ return r.json(); })
+      .then(function(data){ renderRxCard(data.prescription); })
+      .catch(function(){});
+  }
+
+  // Load prescription on page open
+  loadAndShowRxCard();
+  // Also poll prescription every 10s (so mother sees it when doctor sends)
+  setInterval(loadAndShowRxCard, 10000);
 </script>
 {% endblock %}

@@ -42,6 +42,7 @@ urlpatterns = [
     path("doctors/", include("physicians.urls", namespace="physicians")),
     path("consultations/", include("consultations.urls", namespace="consultations")),
     path("push/",          include("notifications.urls", namespace="notifications")),
+    path("rx/",            include("prescriptions.urls", namespace="prescriptions")),
 ]
 
 # Serve media files in development
