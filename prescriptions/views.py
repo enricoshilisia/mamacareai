@@ -12,7 +12,7 @@ from .models import Prescription, PrescriptionItem
 def _ai_suggest_drugs(consultation):
     """Call Azure OpenAI to suggest drugs based on consultation context."""
     from django.conf import settings
-    from openai import AzureOpenAI
+    from openai import OpenAI
 
     child = consultation.child
     child_info = ""
@@ -52,10 +52,9 @@ def _ai_suggest_drugs(consultation):
         f"Recent conversation:\n{chat_lines}"
     )
 
-    client = AzureOpenAI(
+    client = OpenAI(
+        base_url=settings.AZURE_OPENAI_ENDPOINT,
         api_key=settings.AZURE_OPENAI_KEY,
-        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-        api_version=settings.AZURE_OPENAI_API_VERSION,
     )
     response = client.chat.completions.create(
         model=settings.AZURE_OPENAI_DEPLOYMENT,

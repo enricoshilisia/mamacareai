@@ -175,8 +175,23 @@
   .rx-overlay.open { display: flex; }
   .rx-modal {
     background: white; border-radius: 20px 20px 0 0;
-    width: 100%; max-width: 560px; max-height: 85vh;
-    overflow-y: auto; padding: 20px 20px 32px;
+    width: 100%; max-width: 560px;
+    height: 88vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .rx-modal-header {
+    flex-shrink: 0; padding: 20px 20px 0;
+  }
+  .rx-modal-scroll {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0 20px 20px;
+  }
+  .rx-modal-footer {
+    flex-shrink: 0; padding: 12px 20px 20px;
+    border-top: 1px solid #e2e8f0;
+    background: white;
   }
   .rx-modal-title { font-size: 16px; font-weight: 700; color: #1e3a5f; margin-bottom: 4px; }
   .rx-modal-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
@@ -351,26 +366,32 @@
 {# ── Prescription modal ── #}
 <div class="rx-overlay" id="rxOverlay">
   <div class="rx-modal">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div class="rx-modal-title">💊 Prescribe Medication</div>
-      <button onclick="closeRxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;">✕</button>
+
+    <div class="rx-modal-header">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+        <div class="rx-modal-title">💊 Prescribe Medication</div>
+        <button onclick="closeRxModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#64748b;">✕</button>
+      </div>
+      <div class="rx-modal-sub">AI will suggest drugs based on the consultation. You select, edit, and confirm.</div>
+      <button class="rx-suggest-btn" id="rxSuggestBtn" onclick="getSuggestions()">
+        Get AI Drug Suggestions
+      </button>
+      <div id="rxErrorMsg" style="display:none;font-size:12px;color:#dc2626;margin:-8px 0 12px;padding:8px 10px;background:#fef2f2;border-radius:8px;"></div>
     </div>
-    <div class="rx-modal-sub">AI will suggest drugs based on the consultation. You select, edit, and confirm.</div>
 
-    <button class="rx-suggest-btn" id="rxSuggestBtn" onclick="getSuggestions()">
-      Get AI Drug Suggestions
-    </button>
+    <div class="rx-modal-scroll">
+      <div class="rx-drug-list" id="rxDrugList"></div>
+      <button class="rx-add-custom" onclick="addCustomDrug()">+ Add drug manually</button>
+      <div class="rx-field-label" style="margin-bottom:6px;">Doctor's notes (optional)</div>
+      <textarea class="rx-notes-area" id="rxNotes" rows="2" placeholder="e.g. Follow up in 3 days if no improvement"></textarea>
+    </div>
 
-    <div class="rx-drug-list" id="rxDrugList"></div>
+    <div class="rx-modal-footer">
+      <button class="rx-confirm-btn" id="rxConfirmBtn" onclick="confirmRx()" disabled>
+        Send Prescription to Mother
+      </button>
+    </div>
 
-    <button class="rx-add-custom" onclick="addCustomDrug()">+ Add drug manually</button>
-
-    <div class="rx-field-label" style="margin-bottom:6px;">Doctor's notes (optional)</div>
-    <textarea class="rx-notes-area" id="rxNotes" rows="2" placeholder="e.g. Follow up in 3 days if no improvement"></textarea>
-
-    <button class="rx-confirm-btn" id="rxConfirmBtn" onclick="confirmRx()" disabled>
-      Send Prescription to Mother
-    </button>
   </div>
 </div>
 {% endif %}
@@ -486,8 +507,10 @@
   }
 
   async function getSuggestions() {
-    var btn = document.getElementById('rxSuggestBtn');
+    var btn    = document.getElementById('rxSuggestBtn');
+    var errDiv = document.getElementById('rxErrorMsg');
     btn.disabled = true; btn.textContent = 'Getting suggestions…';
+    errDiv.style.display = 'none';
     try {
       var res  = await fetch(RX_SUGGEST_URL, {
         method: 'POST',
@@ -498,11 +521,18 @@
       if (data.drugs && data.drugs.length > 0) {
         _rxDrugs = data.drugs.map(function(d){ return Object.assign({}, d, {ai_suggested: true, selected: true}); });
         renderDrugList(_rxDrugs);
+        btn.textContent = 'Refresh AI Suggestions';
       } else {
-        btn.textContent = 'No suggestions — add manually';
+        btn.textContent = 'Retry AI Suggestions';
+        if (data.error) {
+          errDiv.textContent = 'AI error: ' + data.error;
+          errDiv.style.display = 'block';
+        }
       }
     } catch(e) {
-      btn.textContent = 'AI unavailable — add manually';
+      btn.textContent = 'Retry AI Suggestions';
+      errDiv.textContent = 'Network error — check connection and try again.';
+      errDiv.style.display = 'block';
     } finally {
       btn.disabled = false;
       updateConfirmBtn();
