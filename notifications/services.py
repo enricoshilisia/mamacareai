@@ -4,7 +4,7 @@ import logging
 from django.conf import settings
 from pywebpush import webpush, WebPushException
 
-from .models import PushSubscription
+from .models import PushSubscription, InAppNotification
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +37,9 @@ def send_push_to_user(user, title: str, body: str, url: str = "/"):
 
     if stale:
         PushSubscription.objects.filter(pk__in=stale).delete()
+
+
+def notify_user(user, title: str, body: str, url: str = "/"):
+    """Create an in-app notification AND send a push notification."""
+    InAppNotification.objects.create(user=user, title=title, body=body, url=url)
+    send_push_to_user(user, title=title, body=body, url=url)

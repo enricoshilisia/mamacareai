@@ -448,11 +448,35 @@ def respond(request, pk):
         consultation.ai_summary = summary
         consultation.status     = "accepted"
         consultation.save(update_fields=["ai_summary", "status", "updated_at"])
+        try:
+            from notifications.services import notify_user
+            child_name  = consultation.child.name if consultation.child else 'your baby'
+            doctor_name = f"Dr. {consultation.physician.full_name}"
+            notify_user(
+                consultation.mother,
+                title="Doctor Accepted Your Request 👨‍⚕️",
+                body=f"{doctor_name} has accepted your consultation for {child_name}. Tap to chat.",
+                url=f"/consultations/{consultation.pk}/chat/",
+            )
+        except Exception:
+            pass
         return redirect("consultations:chat_room", pk=consultation.pk)
 
     elif action == "decline":
         consultation.status = "declined"
         consultation.save(update_fields=["status", "updated_at"])
+        try:
+            from notifications.services import notify_user
+            child_name  = consultation.child.name if consultation.child else 'your baby'
+            doctor_name = f"Dr. {consultation.physician.full_name}"
+            notify_user(
+                consultation.mother,
+                title="Consultation Declined",
+                body=f"{doctor_name} is unavailable for {child_name}'s consultation. Please try another doctor.",
+                url="/doctors/",
+            )
+        except Exception:
+            pass
         return redirect("consultations:inbox")
 
     return redirect("consultations:inbox")

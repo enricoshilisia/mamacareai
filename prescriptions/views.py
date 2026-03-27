@@ -121,14 +121,14 @@ def confirm_prescription(request, pk):
                 ai_suggested=item.get('ai_suggested', False),
             )
 
-        # Push notification to mother
+        # In-app + push notification to mother
         try:
-            from notifications.services import send_push_to_user
-            child_name = consultation.child.name if consultation.child else 'your baby'
+            from notifications.services import notify_user
+            child_name  = consultation.child.name if consultation.child else 'your baby'
             doctor_name = f"Dr. {consultation.physician.full_name}"
-            send_push_to_user(
+            notify_user(
                 consultation.mother,
-                title="Prescription Ready",
+                title="Prescription Ready 💊",
                 body=f"{doctor_name} has sent a prescription for {child_name}. Tap to view.",
                 url=f"/consultations/{consultation.pk}/chat/",
             )
