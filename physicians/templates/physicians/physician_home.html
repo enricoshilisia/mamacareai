@@ -84,10 +84,6 @@
         {{ physician.hospital }} · {{ physician.city }}{% if physician.country %}, {{ physician.country }}{% endif %}
       </p>
     </div>
-    <a href="{% url 'physicians:physician_detail' physician.pk %}"
-       style="font-size:12px;font-weight:600;color:var(--blue-mid);text-decoration:none;background:white;border:1px solid var(--blue-border);border-radius:8px;padding:7px 14px;white-space:nowrap;flex-shrink:0;">
-      View Profile →
-    </a>
   </div>
 
   {# ── Stats row ── #}
