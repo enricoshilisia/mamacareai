@@ -133,7 +133,7 @@
       <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin:0;">💊 Medication Schedule</h2>
       <p style="font-size:11px;color:var(--ink-3);margin:3px 0 0;">Dr. {{ rx.consultation.physician.full_name }}{% if rx.consultation.child %} · {{ rx.consultation.child.name }}{% endif %} · {{ rx.confirmed_at|date:"d M Y" }}</p>
     </div>
-    <a href="{% url 'consultations:chat_room' rx.consultation.pk %}"
+    <a href="{% url 'prescriptions:detail' rx.pk %}"
        style="font-size:11px;font-weight:600;color:var(--rose-mid);text-decoration:none;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:7px;padding:5px 10px;white-space:nowrap;flex-shrink:0;">
       Full Rx →
     </a>

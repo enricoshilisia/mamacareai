@@ -1,0 +1,88 @@
+{% extends "mothers/base.html" %}
+{% block title %}Prescription – MamaCare{% endblock %}
+{% block topbar_title %}Prescription{% endblock %}
+
+{% block content %}
+<div style="max-width:600px;margin:0 auto;">
+
+  {# ── Header ── #}
+  <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:18px;padding:22px 24px;margin-bottom:24px;">
+    <p style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#16a34a;margin-bottom:6px;">Prescription</p>
+    <h1 style="font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;color:#14532d;margin:0 0 6px;">
+      Dr. {{ rx.consultation.physician.full_name }}
+    </h1>
+    <p style="font-size:12px;color:#166534;margin:0;">
+      {{ rx.consultation.physician.get_specialization_display }}
+      {% if rx.consultation.physician.hospital %} · {{ rx.consultation.physician.hospital }}{% endif %}
+    </p>
+    <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;">
+      {% if rx.consultation.child %}
+      <div style="font-size:12px;color:#166534;">
+        <span style="opacity:.7;">Patient</span><br>
+        <strong>{{ rx.consultation.child.name }}</strong>{% if rx.consultation.child.age_display %}, {{ rx.consultation.child.age_display }}{% endif %}
+      </div>
+      {% endif %}
+      <div style="font-size:12px;color:#166534;">
+        <span style="opacity:.7;">Issued</span><br>
+        <strong>{{ rx.confirmed_at|date:"d M Y" }}</strong>
+      </div>
+    </div>
+  </div>
+
+  {# ── Notes ── #}
+  {% if rx.notes %}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:18px;line-height:1.3;">📋</span>
+    <p style="font-size:13px;color:var(--ink-2);line-height:1.6;margin:0;font-style:italic;">{{ rx.notes }}</p>
+  </div>
+  {% endif %}
+
+  {# ── Medication table ── #}
+  <div style="margin-bottom:24px;">
+    <h2 style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:14px;">Medications</h2>
+
+    <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:14px;overflow:hidden;">
+      {# Column headers #}
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;background:#fdf2f4;border-bottom:1px solid var(--rose-border);padding:9px 16px;gap:8px;">
+        <p style="font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin:0;">Medicine</p>
+        <p style="font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin:0;">Frequency</p>
+        <p style="font-size:10.5px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em;margin:0;">Duration</p>
+      </div>
+
+      {% for item in rx.items.all %}
+      <div style="border-bottom:1px solid var(--rose-border);">
+        {# Main row #}
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:13px 16px;gap:8px;align-items:start;">
+          <div>
+            <p style="font-size:13px;font-weight:700;color:var(--ink);margin:0;">{{ item.drug_name }}</p>
+            <p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">{{ item.dosage }}</p>
+          </div>
+          <p style="font-size:12px;color:var(--ink-2);margin:0;padding-top:1px;">{{ item.frequency }}</p>
+          <p style="font-size:12px;color:var(--ink-2);margin:0;padding-top:1px;">{{ item.duration }}</p>
+        </div>
+        {# Instructions row if present #}
+        {% if item.instructions %}
+        <div style="padding:0 16px 12px;margin-top:-4px;">
+          <p style="font-size:11.5px;color:var(--ink-3);background:#f8fafc;border-radius:7px;padding:7px 10px;margin:0;line-height:1.5;">{{ item.instructions }}</p>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── Disclaimer ── #}
+  <div style="background:#fef9c3;border:1px solid #fde047;border-radius:12px;padding:12px 16px;margin-bottom:24px;display:flex;gap:10px;align-items:flex-start;">
+    <span style="font-size:16px;line-height:1.4;">⚠️</span>
+    <p style="font-size:12px;color:#854d0e;line-height:1.6;margin:0;">
+      This prescription was issued by a licensed physician. Do not alter dosage without consulting your doctor. Keep all medicines out of reach of children.
+    </p>
+  </div>
+
+  {# ── Back link ── #}
+  <a href="{% url 'mothers:home' %}" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--rose-mid);text-decoration:none;">
+    ← Back to Home
+  </a>
+
+</div>
+{% endblock %}

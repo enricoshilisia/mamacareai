@@ -7,4 +7,5 @@ urlpatterns = [
     path('<uuid:pk>/suggest/',  views.suggest_drugs,        name='suggest'),
     path('<uuid:pk>/confirm/',  views.confirm_prescription,  name='confirm'),
     path('<uuid:pk>/get/',      views.get_prescription,      name='get'),
+    path('<uuid:pk>/',          views.prescription_detail,   name='detail'),
 ]

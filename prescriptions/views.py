@@ -201,6 +201,19 @@ def confirm_prescription(request, pk):
 
 
 @login_required
+def prescription_detail(request, pk):
+    """Mother-facing full prescription page."""
+    from django.shortcuts import render
+    rx = get_object_or_404(
+        Prescription,
+        consultation__mother=request.user,
+        pk=pk,
+        confirmed_at__isnull=False,
+    )
+    return render(request, "prescriptions/prescription_detail.html", {"rx": rx})
+
+
+@login_required
 def get_prescription(request, pk):
     """Return prescription data for a consultation."""
     consultation = get_object_or_404(Consultation, pk=pk)
