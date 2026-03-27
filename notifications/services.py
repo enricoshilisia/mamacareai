@@ -27,13 +27,18 @@ def send_push_to_user(user, title: str, body: str, url: str = "/"):
                 vapid_claims={"sub": f"mailto:{settings.VAPID_ADMIN_EMAIL}"},
             )
         except WebPushException as e:
-            # 404 / 410 means the subscription is no longer valid
             if e.response is not None and e.response.status_code in (404, 410):
                 stale.append(sub.pk)
             else:
-                logger.warning("Push failed for sub %s: %s", sub.pk, e)
+                resp_text = e.response.text if e.response is not None else "no response"
+                resp_status = e.response.status_code if e.response is not None else "?"
+                logger.error(
+                    "Push failed for sub %s — HTTP %s: %s | key_prefix=%s",
+                    sub.pk, resp_status, resp_text,
+                    settings.VAPID_PRIVATE_KEY[:40] if settings.VAPID_PRIVATE_KEY else "MISSING",
+                )
         except Exception as e:
-            logger.warning("Push error for sub %s: %s", sub.pk, e)
+            logger.error("Push error for sub %s: %s", sub.pk, e)
 
     if stale:
         PushSubscription.objects.filter(pk__in=stale).delete()

@@ -1,5 +1,6 @@
 import json
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -68,3 +69,20 @@ def mark_all_read(request):
     """POST /push/notifications/read/ — marks all notifications as read."""
     InAppNotification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return JsonResponse({"ok": True})
+
+
+@login_required
+def vapid_debug(request):
+    """GET /push/vapid-debug/ — staff only, verify VAPID config in production."""
+    if not request.user.is_staff:
+        return JsonResponse({"error": "forbidden"}, status=403)
+    priv = settings.VAPID_PRIVATE_KEY or ""
+    return JsonResponse({
+        "public_key":          settings.VAPID_PUBLIC_KEY,
+        "private_key_present": bool(priv),
+        "private_key_starts":  priv[:30] if priv else None,
+        "private_key_ends":    priv[-20:] if priv else None,
+        "private_key_has_newlines": "\n" in priv,
+        "admin_email":         settings.VAPID_ADMIN_EMAIL,
+        "sub_count":           PushSubscription.objects.filter(user=request.user).count(),
+    })
