@@ -176,10 +176,9 @@
   .rx-modal {
     background: white; border-radius: 20px 20px 0 0;
     width: 100%; max-width: 560px;
-    max-height: 92vh;
-    max-height: 92dvh;
     display: flex; flex-direction: column;
     overflow: hidden;
+    /* height set by JS on open so it always fits the real visible viewport */
   }
   .rx-modal-header {
     flex-shrink: 0; padding: 20px 20px 0;
@@ -494,12 +493,24 @@
   var _rxDrugs = [];  // current drug list in modal
 
   function openRxModal() {
+    // Use window.innerHeight so the modal never exceeds the real visible screen
+    var modal = document.querySelector('.rx-modal');
+    modal.style.height = Math.floor(window.innerHeight * 0.92) + 'px';
     document.getElementById('rxOverlay').classList.add('open');
+    // Scroll modal content to top every time it opens
+    var scroll = document.querySelector('.rx-modal-scroll');
+    if (scroll) scroll.scrollTop = 0;
     if (_rxDrugs.length === 0) renderDrugList([]);
   }
   function closeRxModal() {
     document.getElementById('rxOverlay').classList.remove('open');
   }
+  window.addEventListener('resize', function() {
+    if (document.getElementById('rxOverlay').classList.contains('open')) {
+      document.querySelector('.rx-modal').style.height =
+        Math.floor(window.innerHeight * 0.92) + 'px';
+    }
+  });
 
   async function getSuggestions() {
     var btn    = document.getElementById('rxSuggestBtn');
