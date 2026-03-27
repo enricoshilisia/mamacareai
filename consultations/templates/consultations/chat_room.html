@@ -176,7 +176,8 @@
   .rx-modal {
     background: white; border-radius: 20px 20px 0 0;
     width: 100%; max-width: 560px;
-    height: 88vh;
+    max-height: 92vh;
+    max-height: 92dvh;
     display: flex; flex-direction: column;
     overflow: hidden;
   }
@@ -184,15 +185,12 @@
     flex-shrink: 0; padding: 20px 20px 0;
   }
   .rx-modal-scroll {
-    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    flex: 1; min-height: 0;
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
-    padding: 0 20px 20px;
+    padding: 0 20px calc(20px + env(safe-area-inset-bottom, 0px));
   }
-  .rx-modal-footer {
-    flex-shrink: 0; padding: 12px 20px 20px;
-    border-top: 1px solid #e2e8f0;
-    background: white;
-  }
+  .rx-modal-footer { display: none; }
   .rx-modal-title { font-size: 16px; font-weight: 700; color: #1e3a5f; margin-bottom: 4px; }
   .rx-modal-sub { font-size: 12px; color: #64748b; margin-bottom: 16px; }
   .rx-suggest-btn {
@@ -384,10 +382,7 @@
       <button class="rx-add-custom" onclick="addCustomDrug()">+ Add drug manually</button>
       <div class="rx-field-label" style="margin-bottom:6px;">Doctor's notes (optional)</div>
       <textarea class="rx-notes-area" id="rxNotes" rows="2" placeholder="e.g. Follow up in 3 days if no improvement"></textarea>
-    </div>
-
-    <div class="rx-modal-footer">
-      <button class="rx-confirm-btn" id="rxConfirmBtn" onclick="confirmRx()" disabled>
+      <button class="rx-confirm-btn" id="rxConfirmBtn" onclick="confirmRx()" disabled style="margin-top:8px;">
         Send Prescription to Mother
       </button>
     </div>
