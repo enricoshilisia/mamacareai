@@ -29,10 +29,15 @@
   .consult-shell {
     display: flex; flex-direction: column;
     height: calc(100vh - var(--topbar-h, 60px));
+    height: calc(100dvh - var(--topbar-h, 60px));
     margin: -30px -34px; overflow: hidden;
   }
   @media (max-width: 1023px) {
-    .consult-shell { height: calc(100vh - 56px - 60px); margin: -16px -16px; }
+    .consult-shell {
+      height: calc(100vh - 56px - 60px);
+      height: calc(100dvh - 56px - 60px);
+      margin: -16px -16px;
+    }
   }
 
   /* ── Info header ── */
@@ -340,10 +345,9 @@
       <p style="font-size:13px;">No messages yet. Start the conversation!</p>
     </div>
     {% endfor %}
+    {# ── Prescription card lives inside message scroll area ── #}
+    <div id="rx-card-area"></div>
   </div>
-
-  {# ── Prescription card (shown when confirmed) ── #}
-  <div id="rx-card-area"></div>
 
   {# ── Input ── #}
   <div class="c-input-area">
@@ -589,16 +593,34 @@
   }
 
   async function confirmRx() {
-    var selected = _rxDrugs.filter(function(d){ return d.selected !== false; });
-    if (selected.length === 0) return;
+    // Build items by reading DOM fields directly — avoids stale _rxDrugs references
+    var items = [];
+    _rxDrugs.forEach(function(drug, i) {
+      var checkbox = document.getElementById('rxCheck' + i);
+      if (!checkbox || !checkbox.checked) return;  // skip unchecked
+      var card = document.getElementById('rxCard' + i);
+      var inputs = card ? card.querySelectorAll('input[type=text]') : [];
+      items.push({
+        drug_name:    drug.drug_name || '',
+        dosage:       inputs[0] ? inputs[0].value : (drug.dosage || ''),
+        frequency:    inputs[1] ? inputs[1].value : (drug.frequency || ''),
+        duration:     inputs[2] ? inputs[2].value : (drug.duration || ''),
+        instructions: inputs[3] ? inputs[3].value : (drug.instructions || ''),
+        ai_suggested: !!drug.ai_suggested,
+      });
+    });
+    if (items.length === 0) return;
+
     var btn = document.getElementById('rxConfirmBtn');
+    var errDiv = document.getElementById('rxErrorMsg');
     btn.disabled = true; btn.textContent = 'Sending…';
+    if (errDiv) errDiv.style.display = 'none';
     try {
       var res = await fetch(RX_CONFIRM_URL, {
         method: 'POST',
         headers: { 'X-CSRFToken': CSRF_TOKEN_RX, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: selected,
+          items: items,
           notes: document.getElementById('rxNotes').value,
         }),
       });
@@ -610,10 +632,12 @@
       } else {
         btn.textContent = 'Error — try again';
         btn.disabled = false;
+        if (errDiv && data.error) { errDiv.textContent = data.error; errDiv.style.display = 'block'; }
       }
     } catch(e) {
       btn.textContent = 'Error — try again';
       btn.disabled = false;
+      if (errDiv) { errDiv.textContent = 'Network error — check connection.'; errDiv.style.display = 'block'; }
     }
   }
 
