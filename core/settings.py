@@ -158,11 +158,15 @@ _FALLBACK_VAPID_PRIVATE = "LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFS
 
 VAPID_PUBLIC_KEY  = env("VAPID_PUBLIC_KEY", default=_FALLBACK_VAPID_PUBLIC)
 
-# Support VAPID_PRIVATE_KEY (raw PEM) or VAPID_PRIVATE_KEY_B64 (base64-encoded PEM)
+# VAPID_PRIVATE_KEY_RAW — raw base64url EC key (preferred, no PEM parsing)
+# VAPID_PRIVATE_KEY     — raw PEM string (legacy)
+# VAPID_PRIVATE_KEY_B64 — base64-encoded PEM (legacy)
+_raw_key  = env("VAPID_PRIVATE_KEY_RAW", default="")
 _raw_pem  = env("VAPID_PRIVATE_KEY", default="")
 _priv_b64 = env("VAPID_PRIVATE_KEY_B64", default="")
-if _raw_pem:
-    # Raw PEM — replace literal \n with real newlines (Azure App Settings strips them)
+if _raw_key:
+    VAPID_PRIVATE_KEY = _raw_key  # pass directly to pywebpush — no PEM needed
+elif _raw_pem:
     VAPID_PRIVATE_KEY = _raw_pem.replace("\\n", "\n").strip()
 elif _priv_b64:
     try:
