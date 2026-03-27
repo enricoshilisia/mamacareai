@@ -243,6 +243,53 @@
     cursor: pointer; margin-bottom: 12px; transition: background .12s;
   }
   .rx-add-custom:hover { background: #eff6ff; }
+
+  /* ── Complete consultation modal ── */
+  .done-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 600;
+    align-items: center; justify-content: center; padding: 24px;
+  }
+  .done-overlay.open { display: flex; }
+  .done-modal {
+    background: white; border-radius: 20px;
+    width: 100%; max-width: 360px;
+    padding: 32px 28px 24px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.2);
+    text-align: center;
+    animation: doneIn .22s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes doneIn {
+    from { opacity:0; transform: scale(0.88); }
+    to   { opacity:1; transform: scale(1); }
+  }
+  .done-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: #dcfce7; display: flex; align-items: center;
+    justify-content: center; margin: 0 auto 16px;
+    font-size: 26px;
+  }
+  .done-title {
+    font-size: 17px; font-weight: 700; color: #0f172a; margin-bottom: 6px;
+  }
+  .done-body {
+    font-size: 13px; color: #64748b; line-height: 1.55; margin-bottom: 24px;
+  }
+  .done-actions { display: flex; gap: 10px; }
+  .done-cancel {
+    flex: 1; padding: 11px; border-radius: 11px;
+    border: 1.5px solid #e2e8f0; background: white;
+    color: #475569; font-size: 13.5px; font-weight: 600;
+    cursor: pointer; transition: background .12s;
+  }
+  .done-cancel:hover { background: #f8fafc; }
+  .done-confirm {
+    flex: 1; padding: 11px; border-radius: 11px;
+    border: none; background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; transition: opacity .12s;
+  }
+  .done-confirm:hover { opacity: .88; }
 </style>
 {% endblock %}
 
@@ -279,9 +326,9 @@
     {% if viewer == 'doctor' %}
     <div style="margin-left:auto;display:flex;align-items:center;gap:0;">
       <button class="rx-btn" onclick="openRxModal()">💊 Prescribe</button>
-      <form method="post" action="{% url 'consultations:complete' pk=consultation.pk %}">
+      <form method="post" action="{% url 'consultations:complete' pk=consultation.pk %}" id="completeForm">
         {% csrf_token %}
-        <button type="submit" class="complete-btn" onclick="return confirm('Mark this consultation as completed?')">
+        <button type="button" class="complete-btn" onclick="openCompleteModal()">
           ✓ Mark Complete
         </button>
       </form>
@@ -366,6 +413,24 @@
 </div>
 
 {% if viewer == 'doctor' %}
+{# ── Mark Complete modal ── #}
+<div class="done-overlay" id="doneOverlay">
+  <div class="done-modal">
+    <div class="done-icon">✓</div>
+    <div class="done-title">Mark as Completed?</div>
+    <div class="done-body">
+      This will close the consultation with
+      <strong>{{ consultation.mother.first_name }}</strong>
+      {% if consultation.child %}for <strong>{{ consultation.child.name }}</strong>{% endif %}.
+      The mother will be notified.
+    </div>
+    <div class="done-actions">
+      <button class="done-cancel" onclick="closeDoneModal()">Cancel</button>
+      <button class="done-confirm" onclick="document.getElementById('completeForm').submit()">Yes, Complete</button>
+    </div>
+  </div>
+</div>
+
 {# ── Prescription modal ── #}
 <div class="rx-overlay" id="rxOverlay">
   <div class="rx-modal">
@@ -492,6 +557,17 @@
   window.addEventListener('online', pollMessages);  // catch up immediately on reconnect
 
   // ── Prescription ──────────────────────────────────────────────────────────
+  // ── Mark Complete modal ──
+  function openCompleteModal() {
+    document.getElementById('doneOverlay').classList.add('open');
+  }
+  function closeDoneModal() {
+    document.getElementById('doneOverlay').classList.remove('open');
+  }
+  document.getElementById('doneOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeDoneModal();
+  });
+
   var RX_SUGGEST_URL = "{% url 'prescriptions:suggest' pk=consultation.pk %}";
   var RX_CONFIRM_URL = "{% url 'prescriptions:confirm' pk=consultation.pk %}";
   var RX_GET_URL     = "{% url 'prescriptions:get' pk=consultation.pk %}";
