@@ -1,8 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.http import JsonResponse
+from django.utils import timezone
+from datetime import timedelta
 
 from mothers.models import Mother
 from .models import Physician, PhysicianReview, PhysicianRegistrationRequest
@@ -19,9 +21,41 @@ def _base(request):
 def physician_home(request):
     physician = getattr(request.user, "physician_profile", None)
     reviews   = physician.reviews.filter(is_approved=True).order_by("-created_at")[:5] if physician else []
+
+    stats = {}
+    if physician:
+        qs = physician.consultations.all()
+        total      = qs.count()
+        completed  = qs.filter(status="completed").count()
+        pending    = qs.filter(status="pending").count()
+        active     = qs.filter(status="accepted").count()
+        this_month = qs.filter(created_at__month=timezone.now().month,
+                               created_at__year=timezone.now().year).count()
+        last_month_date = timezone.now().replace(day=1) - timedelta(days=1)
+        last_month = qs.filter(created_at__month=last_month_date.month,
+                               created_at__year=last_month_date.year).count()
+
+        # Severity breakdown (completed only)
+        severity_qs = qs.filter(status="completed").values("severity").annotate(n=Count("id"))
+        severity_map = {s["severity"]: s["n"] for s in severity_qs}
+
+        stats = {
+            "total":      total,
+            "completed":  completed,
+            "pending":    pending,
+            "active":     active,
+            "this_month": this_month,
+            "last_month": last_month,
+            "mild":       severity_map.get("mild", 0),
+            "moderate":   severity_map.get("moderate", 0),
+            "severe":     severity_map.get("severe", 0),
+            "critical":   severity_map.get("critical", 0),
+        }
+
     return render(request, "physicians/physician_home.html", {
         "physician": physician,
         "reviews":   reviews,
+        "stats":     stats,
     })
 
 

@@ -120,6 +120,80 @@
 
   </div>
 
+  {# ── Analytics ── #}
+  {% if stats %}
+  <div style="margin-bottom:16px;">
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600;color:var(--blue-deep);margin:0 0 12px;">
+      Consultation Analytics
+    </h3>
+
+    {# Key numbers #}
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px;">
+
+      <div style="background:linear-gradient(135deg,#1d4ed8,#1e40af);border-radius:14px;padding:18px;color:white;">
+        <p style="font-size:32px;font-weight:700;font-family:'Cormorant Garamond',serif;margin:0 0 2px;">{{ stats.total }}</p>
+        <p style="font-size:11px;opacity:.8;margin:0;text-transform:uppercase;letter-spacing:.06em;">Total Consultations</p>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#16a34a,#15803d);border-radius:14px;padding:18px;color:white;">
+        <p style="font-size:32px;font-weight:700;font-family:'Cormorant Garamond',serif;margin:0 0 2px;">{{ stats.completed }}</p>
+        <p style="font-size:11px;opacity:.8;margin:0;text-transform:uppercase;letter-spacing:.06em;">Completed</p>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:16px;">
+        <p style="font-size:26px;font-weight:700;font-family:'Cormorant Garamond',serif;color:#f59e0b;margin:0 0 2px;">{{ stats.pending }}</p>
+        <p style="font-size:11px;color:var(--ink-3);margin:0;text-transform:uppercase;letter-spacing:.06em;">Awaiting Response</p>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:16px;">
+        <p style="font-size:26px;font-weight:700;font-family:'Cormorant Garamond',serif;color:#2563eb;margin:0 0 2px;">{{ stats.active }}</p>
+        <p style="font-size:11px;color:var(--ink-3);margin:0;text-transform:uppercase;letter-spacing:.06em;">Active Chats</p>
+      </div>
+
+    </div>
+
+    {# This month vs last month #}
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div>
+        <p style="font-size:12px;color:var(--ink-3);margin:0 0 2px;">This month</p>
+        <p style="font-size:24px;font-weight:700;font-family:'Cormorant Garamond',serif;color:var(--blue-deep);margin:0;">{{ stats.this_month }}</p>
+      </div>
+      <div style="font-size:22px;color:var(--ink-3);">vs</div>
+      <div style="text-align:right;">
+        <p style="font-size:12px;color:var(--ink-3);margin:0 0 2px;">Last month</p>
+        <p style="font-size:24px;font-weight:700;font-family:'Cormorant Garamond',serif;color:var(--ink);margin:0;">{{ stats.last_month }}</p>
+      </div>
+      {% if stats.this_month > stats.last_month %}
+      <div style="background:#dcfce7;color:#16a34a;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;flex-shrink:0;">↑ Up</div>
+      {% elif stats.this_month < stats.last_month %}
+      <div style="background:#fee2e2;color:#dc2626;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;flex-shrink:0;">↓ Down</div>
+      {% else %}
+      <div style="background:#f1f5f9;color:#64748b;border-radius:99px;padding:4px 12px;font-size:12px;font-weight:700;flex-shrink:0;">— Same</div>
+      {% endif %}
+    </div>
+
+    {# Severity breakdown bar #}
+    {% if stats.completed > 0 %}
+    <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:16px 18px;">
+      <p style="font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;">Case Severity Breakdown</p>
+      <div style="display:flex;border-radius:8px;overflow:hidden;height:10px;margin-bottom:10px;">
+        {% if stats.mild %}<div style="flex:{{ stats.mild }};background:#4ade80;" title="Mild"></div>{% endif %}
+        {% if stats.moderate %}<div style="flex:{{ stats.moderate }};background:#fbbf24;" title="Moderate"></div>{% endif %}
+        {% if stats.severe %}<div style="flex:{{ stats.severe }};background:#f97316;" title="Severe"></div>{% endif %}
+        {% if stats.critical %}<div style="flex:{{ stats.critical }};background:#ef4444;" title="Critical"></div>{% endif %}
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        {% if stats.mild %}<span style="font-size:11px;color:#166534;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:4px;"></span>Mild {{ stats.mild }}</span>{% endif %}
+        {% if stats.moderate %}<span style="font-size:11px;color:#854d0e;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fbbf24;margin-right:4px;"></span>Moderate {{ stats.moderate }}</span>{% endif %}
+        {% if stats.severe %}<span style="font-size:11px;color:#9a3412;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#f97316;margin-right:4px;"></span>Severe {{ stats.severe }}</span>{% endif %}
+        {% if stats.critical %}<span style="font-size:11px;color:#991b1b;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>Critical {{ stats.critical }}</span>{% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+  {% endif %}
+
   {# ── Recent reviews ── #}
   {% if reviews %}
   <div style="background:var(--surface);border:1px solid var(--blue-border);border-radius:14px;padding:20px;margin-bottom:16px;">
