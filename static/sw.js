@@ -41,7 +41,7 @@ self.addEventListener('push', e => {
       icon:  '/static/icons/icon-192.png',
       badge: '/static/icons/icon-48.png',
       data:  { url: data.url || '/' },
-    })
+    }).catch(err => console.warn('[MamaCare] showNotification failed:', err))
   );
 });
 
@@ -91,7 +91,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(request, clone));
           return res;
         })
-        .catch(() => caches.match(request).then(cached => cached || caches.match('/')))
+        .catch(() => caches.match(request))
     );
   }
 });
