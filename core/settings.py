@@ -152,8 +152,8 @@ AZURE_OPENAI_API_VERSION = env("AZURE_OPENAI_API_VERSION", default="2024-05-01-p
 import base64 as _b64
 VAPID_PUBLIC_KEY   = env("VAPID_PUBLIC_KEY", default="")
 _priv_b64          = env("VAPID_PRIVATE_KEY_B64", default="")
-# Decode PEM and normalise line endings — Azure App Settings can corrupt whitespace
-VAPID_PRIVATE_KEY  = _b64.b64decode(_priv_b64 + "==").decode().strip() if _priv_b64 else ""
+# URL-safe base64 encoded PEM — avoids + and / which Azure App Settings corrupts
+VAPID_PRIVATE_KEY  = _b64.urlsafe_b64decode(_priv_b64 + "==").decode().strip() if _priv_b64 else ""
 VAPID_ADMIN_EMAIL  = env("VAPID_ADMIN_EMAIL", default="admin@mamacare.com")
 
 # ─── Production security hardening ────────────────────────────────────────────
