@@ -21,7 +21,7 @@ def _ai_suggest_drugs(consultation):
         age_str  = f"{age_days // 7} weeks" if age_days and age_days < 84 else (f"{age_days // 30} months" if age_days else "unknown age")
         child_info = (
             f"Patient: {child.name}, {age_str} old, {child.get_gender_display()}\n"
-            f"Birth weight: {child.birth_weight or 'unknown'}\n"
+            f"Birth weight: {child.birth_weight_kg or 'unknown'} kg\n"
             f"Blood group: {child.blood_group or 'unknown'}\n"
             f"Allergies: {child.allergies or 'none known'}\n"
         )
