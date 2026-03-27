@@ -310,7 +310,7 @@ def chat_room(request, pk):
         viewer = "doctor"
     else:
         consultation = get_object_or_404(
-            Consultation, pk=pk, mother=user, status="accepted"
+            Consultation, pk=pk, mother=user, status__in=["accepted", "completed"]
         )
         base_template = "mothers/base.html"
         viewer = "mother"
@@ -338,7 +338,7 @@ def send_message(request, pk):
         sender_type = "doctor"
     else:
         consultation = get_object_or_404(
-            Consultation, pk=pk, mother=user, status="accepted"
+            Consultation, pk=pk, mother=user, status__in=["accepted", "completed"]
         )
         sender_type = "mother"
 

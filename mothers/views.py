@@ -142,10 +142,28 @@ def home(request):
         return redirect("physicians:physician_home")
     mother = request.user
     children = mother.children.filter(is_active=True).order_by("date_of_birth")
+
+    # Active consultations (pending or accepted)
+    from consultations.models import Consultation
+    active_consultations = Consultation.objects.filter(
+        mother=mother, status__in=["pending", "accepted"]
+    ).select_related("physician", "child").order_by("-created_at")
+
+    # Confirmed prescriptions for this mother
+    from prescriptions.models import Prescription
+    prescriptions = Prescription.objects.filter(
+        consultation__mother=mother,
+        confirmed_at__isnull=False,
+    ).select_related("consultation__physician", "consultation__child").prefetch_related("items").order_by("-confirmed_at")
+
     context = {
         "mother": mother,
         "children": children,
         "greeting": get_greeting(),
+        "active_consultations": active_consultations,
+        "prescriptions": prescriptions,
+        "active_consultation_count": active_consultations.count(),
+        "prescription_count": prescriptions.count(),
     }
     return render(request, "mothers/home.html", context)
 
