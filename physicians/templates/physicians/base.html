@@ -573,45 +573,86 @@
     return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
   }
 
-  async function _registerPush() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  async function _saveSubToServer(sub) {
     try {
-      const reg  = await navigator.serviceWorker.ready;
-      const existing = await reg.pushManager.getSubscription();
-      if (existing) return; // already subscribed on this device
-
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        _showPushBanner();
-        return;
-      }
-
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: _urlB64ToUint8('{{ VAPID_PUBLIC_KEY }}'),
-      });
-
       await fetch("{% url 'notifications:subscribe' %}", {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
         body:    JSON.stringify(sub.toJSON()),
       });
-      console.log('[MamaCare] Push notifications registered.');
-    } catch (e) { console.warn('[MamaCare] Push registration error:', e); }
+    } catch (e) { console.warn('[MamaCare] Failed to save push subscription:', e); }
   }
 
-  function _showPushBanner() {
-    if (document.getElementById('_push-banner')) return;
+  async function _registerPush() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const reg = await navigator.serviceWorker.ready;
+
+      // If permission already granted and subscription exists, re-save to DB
+      // (DB may have been cleared; browser subscription is still valid)
+      if (Notification.permission === 'granted') {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) {
+          await _saveSubToServer(existing);  // always keep DB in sync
+          return;
+        }
+        // Permission granted but no subscription — create one
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: _urlB64ToUint8('{{ VAPID_PUBLIC_KEY }}'),
+        });
+        await _saveSubToServer(sub);
+        _hideNotifBtn();
+        return;
+      }
+
+      if (Notification.permission === 'denied') {
+        _showNotifBtn(true); // blocked — show settings hint
+        return;
+      }
+
+      // Permission not yet asked — show button, require user tap on mobile
+      _showNotifBtn(false);
+    } catch (e) { console.warn('[MamaCare] Push setup error:', e); }
+  }
+
+  // Called when doctor taps "Enable notifications" button
+  async function _requestPushFromGesture() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { _showNotifBtn(true); return; }
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64ToUint8('{{ VAPID_PUBLIC_KEY }}'),
+      });
+      await _saveSubToServer(sub);
+      _hideNotifBtn();
+    } catch (e) { console.warn('[MamaCare] Push request error:', e); }
+  }
+
+  function _showNotifBtn(blocked) {
+    if (document.getElementById('_push-btn')) return;
     var b = document.createElement('div');
-    b.id = '_push-banner';
-    b.style.cssText = 'position:fixed;bottom:72px;left:50%;transform:translateX(-50%);z-index:999;background:#1e3a5f;color:white;font-size:12.5px;font-weight:600;padding:10px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:calc(100vw - 40px);text-align:center;';
-    b.innerHTML = '🔔 Enable notifications to receive consultation alerts — check your browser settings.';
+    b.id = '_push-btn';
+    b.style.cssText = 'position:fixed;bottom:74px;left:50%;transform:translateX(-50%);z-index:1000;background:#1e3a5f;color:white;font-size:13px;font-weight:600;padding:11px 20px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.35);max-width:calc(100vw - 32px);text-align:center;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;';
+    if (blocked) {
+      b.innerHTML = '🔔 Open browser settings to allow notifications';
+      setTimeout(function(){ b.remove(); }, 10000);
+    } else {
+      b.innerHTML = '🔔 <span>Tap to enable consultation alerts</span>';
+      b.onclick = function() { b.remove(); _requestPushFromGesture(); };
+    }
     document.body.appendChild(b);
-    setTimeout(function(){ b.remove(); }, 8000);
   }
 
-  // Delay slightly so page load isn't blocked
-  setTimeout(_registerPush, 3000);
+  function _hideNotifBtn() {
+    var b = document.getElementById('_push-btn');
+    if (b) b.remove();
+  }
+
+  setTimeout(_registerPush, 1500);
   {% endif %}
 </script>
 </body>

@@ -14,7 +14,7 @@ ALLOWED_HOSTS = env(
     "DJANGO_ALLOWED_HOSTS",
     default="localhost,127.0.0.1",
     cast=Csv(),
-)
+) + ["169.254.129.4"]  # Azure App Service internal health probe
 
 CSRF_TRUSTED_ORIGINS = env(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
@@ -151,7 +151,8 @@ AZURE_OPENAI_API_VERSION = env("AZURE_OPENAI_API_VERSION", default="2024-05-01-p
 import base64 as _b64
 VAPID_PUBLIC_KEY   = env("VAPID_PUBLIC_KEY", default="")
 _priv_b64          = env("VAPID_PRIVATE_KEY_B64", default="")
-VAPID_PRIVATE_KEY  = _b64.b64decode(_priv_b64).decode() if _priv_b64 else ""
+# Decode PEM and normalise line endings — Azure App Settings can corrupt whitespace
+VAPID_PRIVATE_KEY  = _b64.b64decode(_priv_b64 + "==").decode().strip() if _priv_b64 else ""
 VAPID_ADMIN_EMAIL  = env("VAPID_ADMIN_EMAIL", default="admin@mamacare.com")
 
 # ─── Production security hardening ────────────────────────────────────────────
