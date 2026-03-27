@@ -14,7 +14,7 @@ ALLOWED_HOSTS = env(
     "DJANGO_ALLOWED_HOSTS",
     default="localhost,127.0.0.1",
     cast=Csv(),
-) + ["169.254.129.4"]  # Azure App Service internal health probe
+)
 
 CSRF_TRUSTED_ORIGINS = env(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
@@ -52,6 +52,7 @@ LOGOUT_REDIRECT_URL = 'mothers:login'
 # ─── Middleware ───────────────────────────────────────────────────────────────
 
 MIDDLEWARE = [
+    'core.middleware.AzureHealthProbeMiddleware',  # must be first
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',   # serve static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
