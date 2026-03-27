@@ -89,51 +89,45 @@
 </div>
 {% endif %}
 
-{# ── Prescriptions / Medication Schedule ── #}
-{% if prescriptions %}
+{# ── Medication Schedule (most recent prescription only) ── #}
+{% with rx=prescriptions.first %}
+{% if rx %}
 <div style="margin-bottom:24px;">
-  <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin-bottom:14px;">💊 Medication Schedule</h2>
-  {% for rx in prescriptions %}
-  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:16px;padding:18px;margin-bottom:12px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div>
-        <p style="font-size:13px;font-weight:600;color:var(--ink);margin:0;">Dr. {{ rx.consultation.physician.full_name }}</p>
-        <p style="font-size:11px;color:var(--ink-3);margin:2px 0 0;">
-          {% if rx.consultation.child %}For {{ rx.consultation.child.name }} · {% endif %}{{ rx.confirmed_at|date:"d M Y" }}
-        </p>
-      </div>
-      <a href="{% url 'consultations:chat_room' rx.consultation.pk %}"
-         style="font-size:11px;font-weight:600;color:var(--rose-mid);text-decoration:none;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:7px;padding:5px 10px;white-space:nowrap;">
-        View Chat →
-      </a>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+    <div>
+      <h2 style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);margin:0;">💊 Medication Schedule</h2>
+      <p style="font-size:11px;color:var(--ink-3);margin:3px 0 0;">Dr. {{ rx.consultation.physician.full_name }}{% if rx.consultation.child %} · {{ rx.consultation.child.name }}{% endif %} · {{ rx.confirmed_at|date:"d M Y" }}</p>
     </div>
-    {% if rx.notes %}
-    <p style="font-size:12px;color:var(--ink-2);background:#f8fafc;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-style:italic;">{{ rx.notes }}</p>
-    {% endif %}
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      {% for item in rx.items.all %}
-      <div style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1px solid #86efac;border-radius:10px;padding:12px 14px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-          <p style="font-size:13px;font-weight:700;color:#14532d;margin:0;">{{ item.drug_name }}</p>
-          {% if item.ai_suggested %}
-          <span style="font-size:9px;font-weight:700;background:#e0f2fe;color:#0369a1;border-radius:5px;padding:2px 6px;white-space:nowrap;flex-shrink:0;">AI</span>
-          {% endif %}
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;">
-          <p style="font-size:11px;color:#166534;margin:0;"><span style="opacity:.7;">Dose:</span> {{ item.dosage }}</p>
-          <p style="font-size:11px;color:#166534;margin:0;"><span style="opacity:.7;">Every:</span> {{ item.frequency }}</p>
-          <p style="font-size:11px;color:#166534;margin:0;"><span style="opacity:.7;">For:</span> {{ item.duration }}</p>
-        </div>
-        {% if item.instructions %}
-        <p style="font-size:11px;color:#166534;opacity:.8;margin:5px 0 0;line-height:1.5;">{{ item.instructions }}</p>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
+    <a href="{% url 'consultations:chat_room' rx.consultation.pk %}"
+       style="font-size:11px;font-weight:600;color:var(--rose-mid);text-decoration:none;background:var(--rose-pale);border:1px solid var(--rose-border);border-radius:7px;padding:5px 10px;white-space:nowrap;flex-shrink:0;">
+      Full Rx →
+    </a>
   </div>
-  {% endfor %}
+  <div style="background:var(--surface);border:1px solid var(--rose-border);border-radius:14px;overflow:hidden;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <thead>
+        <tr style="background:#fdf2f4;">
+          <th style="text-align:left;padding:9px 14px;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--rose-border);">Medicine</th>
+          <th style="text-align:left;padding:9px 10px;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--rose-border);">Dose</th>
+          <th style="text-align:left;padding:9px 10px;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--rose-border);">Frequency</th>
+          <th style="text-align:left;padding:9px 10px;font-weight:600;color:var(--ink-3);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--rose-border);">Duration</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in rx.items.all %}
+        <tr style="border-bottom:1px solid var(--rose-border);">
+          <td style="padding:10px 14px;font-weight:600;color:var(--ink);">{{ item.drug_name }}</td>
+          <td style="padding:10px 10px;color:var(--ink-2);">{{ item.dosage }}</td>
+          <td style="padding:10px 10px;color:var(--ink-2);">{{ item.frequency }}</td>
+          <td style="padding:10px 10px;color:var(--ink-2);">{{ item.duration }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endif %}
+{% endwith %}
 
 {# ── My Children ── #}
 <div style="margin-bottom:24px;">
