@@ -77,14 +77,23 @@ def _ai_suggest_drugs(consultation):
     raw = response.choices[0].message.content.strip()
     logger.debug("AI drug suggestion raw response: %s", raw)
 
-    # Strip markdown code fences if model ignores instructions
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-    result = json.loads(raw)
+    # Extract the JSON array robustly — find first '[' and matching ']'
+    start = raw.find('[')
+    if start == -1:
+        raise ValueError("No JSON array found in AI response")
+    depth = 0
+    end = -1
+    for i, ch in enumerate(raw[start:], start):
+        if ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+    if end == -1:
+        raise ValueError("Unterminated JSON array in AI response")
+    result = json.loads(raw[start:end + 1])
 
     # Fallback: if model returned empty array despite instruction, use ORS defaults
     if not result:
