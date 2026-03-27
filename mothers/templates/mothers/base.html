@@ -686,7 +686,8 @@
   function openNotifPanel() {
     document.getElementById('notifOverlay').classList.add('open');
     loadNotifications();
-    markAllRead();
+    // Delay mark-as-read so the badge count is visible while panel animates open
+    setTimeout(markAllRead, 600);
   }
   function closeNotifPanel(e) {
     if (e && e.target !== document.getElementById('notifOverlay')) return;

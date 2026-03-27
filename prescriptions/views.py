@@ -39,20 +39,26 @@ def _ai_suggest_drugs(consultation):
     )
 
     system_prompt = (
-        "You are a clinical decision support assistant for paediatric care. "
-        "Based on the patient information and clinical context provided, suggest appropriate medications. "
-        "Return ONLY a valid JSON array. No prose, no markdown, no code fences. "
-        "Each item must have exactly these fields: "
-        "drug_name, dosage, frequency, duration, instructions, reasoning. "
-        "Dosage must be weight/age appropriate for the child. "
-        "Limit to 5 drugs maximum. Only suggest medications appropriate for infants/children."
+        "You are a paediatric clinical decision support tool used by a licensed physician "
+        "during a live consultation. The doctor needs medication suggestions to review and approve. "
+        "Based on the patient details and clinical context, list suitable medications.\n\n"
+        "OUTPUT FORMAT — respond with ONLY a raw JSON array, no markdown, no prose, no code fences. "
+        "Each object must have exactly these keys: "
+        "drug_name, dosage, frequency, duration, instructions, reasoning.\n\n"
+        "RULES:\n"
+        "- Suggest 3-5 medications commonly used in paediatric practice for the stated symptoms.\n"
+        "- Include OTC options (paracetamol, ORS, zinc) where appropriate.\n"
+        "- Dosage must be weight/age appropriate.\n"
+        "- If symptoms are unclear, suggest supportive care medications (ORS, paracetamol, zinc).\n"
+        "- Always return at least 2 suggestions — the doctor will decide what to prescribe.\n"
+        "- Never return an empty array."
     )
 
     user_prompt = (
         f"{child_info}\n"
-        f"Clinical summary: {summary}\n"
-        f"Symptoms: {symptoms}\n"
-        f"Recent conversation:\n{chat_lines}"
+        f"Clinical summary: {summary or 'Not yet summarised'}\n"
+        f"Symptoms reported: {symptoms or 'Not specified'}\n"
+        f"Recent consultation notes:\n{chat_lines or 'No messages yet'}"
     )
 
     client = OpenAI(
@@ -65,11 +71,52 @@ def _ai_suggest_drugs(consultation):
             {"role": "system", "content": system_prompt},
             {"role": "user",   "content": user_prompt},
         ],
-        temperature=0.2,
-        max_completion_tokens=800,
+        temperature=0.3,
+        max_completion_tokens=900,
     )
     raw = response.choices[0].message.content.strip()
-    return json.loads(raw)
+    logger.debug("AI drug suggestion raw response: %s", raw)
+
+    # Strip markdown code fences if model ignores instructions
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    result = json.loads(raw)
+
+    # Fallback: if model returned empty array despite instruction, use ORS defaults
+    if not result:
+        logger.warning("AI returned empty drug list for consultation %s", consultation.pk)
+        result = [
+            {
+                "drug_name": "Paracetamol (Calpol)",
+                "dosage": "15 mg/kg per dose",
+                "frequency": "Every 6 hours as needed",
+                "duration": "3-5 days",
+                "instructions": "Give with food. Do not exceed 4 doses in 24 hours.",
+                "reasoning": "First-line antipyretic and analgesic for infants.",
+            },
+            {
+                "drug_name": "Oral Rehydration Salts (ORS)",
+                "dosage": "As needed for hydration",
+                "frequency": "After each loose stool or vomiting episode",
+                "duration": "Until symptoms resolve",
+                "instructions": "Mix one sachet in 200ml clean water. Give small sips frequently.",
+                "reasoning": "Prevents dehydration in infants with diarrhoea or fever.",
+            },
+            {
+                "drug_name": "Zinc Sulphate",
+                "dosage": "10 mg once daily (under 6 months) / 20 mg once daily (6 months+)",
+                "frequency": "Once daily",
+                "duration": "10-14 days",
+                "instructions": "Dissolve tablet in small amount of water or breast milk.",
+                "reasoning": "Reduces duration and severity of diarrhoea in children.",
+            },
+        ]
+
+    return result
 
 
 @login_required
