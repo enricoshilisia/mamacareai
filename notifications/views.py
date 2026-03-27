@@ -72,6 +72,18 @@ def mark_all_read(request):
 
 
 @login_required
+def test_push(request):
+    """GET /push/test/ — sends a real push to the current user's subscriptions."""
+    from .services import send_push_to_user
+    subs = PushSubscription.objects.filter(user=request.user)
+    count = subs.count()
+    if count == 0:
+        return JsonResponse({"ok": False, "reason": "No push subscriptions found for your account. Enable notifications first."})
+    send_push_to_user(request.user, title="MamaCare Test", body="Push is working!", url="/")
+    return JsonResponse({"ok": True, "subscriptions_found": count})
+
+
+@login_required
 def vapid_debug(request):
     """GET /push/vapid-debug/ — staff only, verify VAPID config in production."""
     if not request.user.is_staff:

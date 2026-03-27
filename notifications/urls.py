@@ -9,4 +9,5 @@ urlpatterns = [
     path("notifications/",      views.list_notifications, name="list"),
     path("notifications/read/", views.mark_all_read,      name="mark_read"),
     path("vapid-debug/",        views.vapid_debug,        name="vapid_debug"),
+    path("test/",               views.test_push,          name="test_push"),
 ]
