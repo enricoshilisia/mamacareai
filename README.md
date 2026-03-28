@@ -7,11 +7,20 @@ AI-powered maternal care platform helping new mothers monitor newborn health, an
 ## Table of Contents
 
 - [About](#about)
+- [Slides](#slides)
 - [Azure Services Used](#azure-services-used)
 - [Responsible AI](#responsible-ai)
 - [Getting Started (Developers)](#getting-started-developers)
 - [User Guide — Mothers](#user-guide--mothers)
 - [User Guide — Doctors](#user-guide--doctors)
+
+---
+
+## Slides
+
+A full project presentation is available as a PDF:
+
+[**View MamaCare AI Slides (PDF)**](docs/MamaCare%20AI.pdf)
 
 ---
 

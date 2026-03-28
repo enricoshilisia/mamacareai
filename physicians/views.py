@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import login
 from django.contrib import messages
 from django.db.models import Q, Count
 from django.http import JsonResponse
@@ -253,7 +254,7 @@ def physician_register_step3(request):
         step1 = request.session["dr_step1"]
         step2 = request.session["dr_step2"]
 
-        # Create an inactive user account — activated when admin approves
+        # Create active user account — auto-approved
         user = Mother.objects.create_user(
             phone_number = step1["phone"],
             password     = step1["password"],
@@ -261,8 +262,24 @@ def physician_register_step3(request):
             email        = step1["email"] or None,
             city         = step2.get("city", ""),
             country      = step2.get("country", "Kenya"),
-            is_active    = False,
+            is_active    = True,
             is_doctor    = True,
+        )
+
+        # Create Physician profile immediately
+        Physician.objects.create(
+            full_name      = step1["full_name"],
+            phone          = step1["phone"],
+            email          = step1["email"] or "",
+            specialization = step2["specialization"],
+            hospital       = step2["hospital"],
+            country        = step2.get("country", "Kenya"),
+            city           = step2["city"],
+            bio            = bio,
+            status         = "approved",
+            user           = user,
+            registered_by_doctor = True,
+            registration_notes   = notes,
         )
 
         PhysicianRegistrationRequest.objects.create(
@@ -277,13 +294,16 @@ def physician_register_step3(request):
             bio            = bio,
             notes          = notes,
             user           = user,
+            status         = "approved",
         )
 
         # Clean up session
         del request.session["dr_step1"]
         del request.session["dr_step2"]
 
-        return redirect("physicians:registration_success")
+        # Log the doctor in and redirect to their dashboard
+        login(request, user)
+        return redirect("physicians:physician_home")
 
     return render(request, "physicians/register_step3.html", {
         "data": {"bio": "", "notes": ""},
