@@ -55,3 +55,4 @@ bandit-report.json
 release.zip
 *.zip
 test_azure.py
+.claude/
